@@ -1,0 +1,6 @@
+@XlentApi_HostAddress = http://localhost:5239
+
+GET {{XlentApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
