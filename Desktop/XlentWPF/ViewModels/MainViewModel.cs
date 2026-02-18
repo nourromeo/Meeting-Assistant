@@ -19,7 +19,5 @@ public partial class MainViewModel : ObservableObject
 
         var json = JsonDocument.Parse(response);
         OutputText = json.RootElement.GetProperty("message").GetString();
-        OutputText = response;
-
     }
 }
