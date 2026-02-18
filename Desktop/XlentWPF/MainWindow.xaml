@@ -7,6 +7,23 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="Welcome to XlentWPF!" FontSize="24" HorizontalAlignment="Center" Margin="10"/>
+
+        <Button Content="Call API"
+                Grid.Row="1"
+                Command="{Binding CallApiCommand}"
+                Width="120" Height="35"/>
+
+        <TextBlock Text="{Binding OutputText}"
+                   Grid.Row="2"
+                   HorizontalAlignment="Center"
+                   Margin="10"/>
 
     </Grid>
 </Window>
