@@ -42,12 +42,6 @@ namespace XlentApi.Services
             {
                 Console.WriteLine("No content returned.");
             }
-
-
-
         }
-
-
-
     }
 }
