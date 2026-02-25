@@ -1,4 +1,4 @@
-﻿using XlentApi.Models;
+﻿using XlentWPF.Models;
 
 namespace XlentApi.Services
 {
