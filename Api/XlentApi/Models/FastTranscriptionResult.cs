@@ -7,10 +7,6 @@ namespace XlentApi.Models
         [JsonPropertyName("fullText")]
         public string FullText { get; set; } = string.Empty;
 
-        // A dictionary of unique speakers. Key = "1", Value = "Speaker 1" (default)
-        // The frontend can easily update the Value to "Alice" or "Bob"
-        [JsonPropertyName("speakers")]
-        public Dictionary<string, string> Speakers { get; set; } = new();
 
         [JsonPropertyName("segments")]
         public List<FastTranscriptSegment> Segments { get; set; } = new();
@@ -19,7 +15,7 @@ namespace XlentApi.Models
     public class FastTranscriptSegment
     {
         [JsonPropertyName("speakerId")]
-        public string SpeakerId { get; set; } = string.Empty; // Maps to the key in the Speakers dictionary
+        public int? SpeakerId { get; set; }
 
         [JsonPropertyName("text")]
         public string Text { get; set; } = string.Empty;

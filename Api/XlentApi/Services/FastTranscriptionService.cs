@@ -61,17 +61,17 @@ namespace XlentApi.Services
             {
                 foreach (var phrase in azureData.Phrases)
                 {
-                    var rawSpeaker = phrase.Speaker?.ToString();
-                    var speakerId = string.IsNullOrEmpty(rawSpeaker) ? "Unknown" : rawSpeaker;
+                    //var rawSpeaker = phrase.Speaker?.ToString();
+                    //var speakerId = string.IsNullOrEmpty(rawSpeaker) ? "Unknown" : rawSpeaker;
 
-                    if (!result.Speakers.ContainsKey(speakerId))
-                    {
-                        result.Speakers[speakerId] = speakerId == "Unknown" ? "Unknown Speaker" : $"Speaker {speakerId}";
-                    }
+                    //if (!result.Speakers.ContainsKey(speakerId))
+                    //{
+                    //    result.Speakers[speakerId] = speakerId == "Unknown" ? "Unknown Speaker" : $"Speaker {speakerId}";
+                    //}
 
                     result.Segments.Add(new FastTranscriptSegment
                     {
-                        SpeakerId = speakerId,
+                        SpeakerId = phrase.Speaker,
                         Text = phrase.Text,
                         OffsetMilliseconds = phrase.OffsetMilliseconds,
                         DurationMilliseconds = phrase.DurationMilliseconds
