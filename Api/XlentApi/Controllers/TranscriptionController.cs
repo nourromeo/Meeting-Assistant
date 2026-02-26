@@ -10,17 +10,14 @@ namespace XlentApi.Controllers
     public class TranscriptionController : ControllerBase
     {
         //private readonly ITranscriptionService _transcriptionService;
-        //private readonly ISummaryService _summaryService;
         //private readonly IPiiService _piiService;
         private readonly IFastTranscriptionService _fastTranscriptionService;
 
         public TranscriptionController(//ITranscriptionService transcriptionService, 
-                                       //ISummaryService summaryService, 
                                        //IPiiService piiService,
             IFastTranscriptionService fastTranscriptionService)
         {
             //_transcriptionService = transcriptionService;
-            //_summaryService = summaryService;
             //_piiService = piiService;
             _fastTranscriptionService = fastTranscriptionService;
         }
