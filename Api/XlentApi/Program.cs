@@ -32,6 +32,7 @@ builder.Services.AddHttpClient<IFastTranscriptionService, FastTranscriptionServi
 });
 
 builder.Services.AddSingleton<AzureOpenAiService>();
+builder.Services.AddScoped<ISummaryService, SummaryService>();
 
 var app = builder.Build();
 
