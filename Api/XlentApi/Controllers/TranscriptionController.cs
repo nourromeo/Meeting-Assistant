@@ -23,22 +23,35 @@ namespace XlentApi.Controllers
         }
 
         [HttpPost("upload-fast")]
-        public async Task<IActionResult> UploadAndTranscribe(IFormFile file)
+        public async Task<IActionResult> UploadAndTranscribe(
+            IFormFile file ,
+            [FromQuery] string[]? languages,
+            [FromQuery] string[]? customPhrases,
+            [FromQuery] int? expectedSpeakers)
         {
             if (file == null || file.Length == 0)
             {
                 return BadRequest("Ingen fil uppladdad.");
             }
 
+            var selectedLocales = languages != null && languages.Length > 0
+                ? languages
+                : new[] { "sv-SE", "en-US" };
+
+
             using var stream = file.OpenReadStream();
 
             try
             {
-                var result = await _fastTranscriptionService.TranscribeAudioAsync(stream, file.FileName, "sv-SE");
+                var result = await _fastTranscriptionService.TranscribeAudioAsync(stream, file.FileName, selectedLocales, customPhrases, expectedSpeakers);
 
                 return Ok(result);
             }
-            catch (System.Exception ex)
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(502, $"Kommunikationsfel med Azure: {ex.Message}");
+            }
+            catch (Exception ex)
             {
                 return StatusCode(500, $"Ett fel uppstod vid transkribering: {ex.Message}");
             }

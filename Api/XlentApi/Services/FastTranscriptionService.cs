@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using XlentApi.Interfaces;
 using XlentApi.Models;
 
@@ -13,21 +14,47 @@ namespace XlentApi.Services
         {
             this.httpClient = httpClient;
         }
-        public async Task<FastTranscriptionResult> TranscribeAudioAsync(Stream audioStream, string fileName, string locale = "sv-SE")
+        public async Task<FastTranscriptionResult> TranscribeAudioAsync(
+            Stream audioStream, 
+            string fileName,
+            IEnumerable<string> locale,
+            IEnumerable<string>? phraseList = null,
+            int? expectedSpeakers = null)
         {
-            var definitionPayload = new
+            object diarizationSettings;
+
+            if (expectedSpeakers.HasValue && expectedSpeakers > 0)
             {
-                locales = new[] { locale },
-                diarization = new
+                diarizationSettings = new
                 {
                     enabled = true,
-                    minSpeakers = 1,
-                    maxSpeakers = 3
-                },
-                profanityFilterMode = "None"
+                    minSpeakers = expectedSpeakers.Value,
+                    maxSpeakers = expectedSpeakers.Value,
+                };
+            }
+            else
+            {
+                diarizationSettings = new
+                {
+                    enabled = true
+                };
+            }
+
+            var definitionPayload = new
+            {
+                locales = locale.ToArray(),
+                diarization = diarizationSettings,
+                profanityFilterMode = "None",
+
+                phraseList = phraseList != null && phraseList.Any() ? new { phrases = phraseList.ToArray() } : null
             };
 
-            var definitionJson = JsonSerializer.Serialize(definitionPayload);
+            var jsonOptions = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+
+            var definitionJson = JsonSerializer.Serialize(definitionPayload, jsonOptions);
 
             using var requestContent = new MultipartFormDataContent();
 
@@ -72,7 +99,7 @@ namespace XlentApi.Services
                     result.Segments.Add(new FastTranscriptSegment
                     {
                         SpeakerId = phrase.Speaker,
-                        Text = phrase.Text,
+                        Text = phrase.Text ?? string.Empty,
                         OffsetMilliseconds = phrase.OffsetMilliseconds,
                         DurationMilliseconds = phrase.DurationMilliseconds
                     });
