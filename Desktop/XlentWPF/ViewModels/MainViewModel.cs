@@ -18,24 +18,23 @@ public partial class MainViewModel : ObservableObject
         Transcript = transcript;
         Summary = summary;
 
-        // تشغيل/إيقاف التفريغ حسب التسجيل
+        // Start/stop transcription based on recording state
         Recording.RecordingStarted += async () =>
         {
-            try { await Transcript.StartLiveTranscriptionAsync(); }
-            catch { /* تجاهل/سجل */ }
+            await Transcript.StartLiveTranscriptionAsync();
         };
 
         Recording.RecordingStopped += async () =>
         {
-            try { await Transcript.StopLiveTranscriptionAsync(); }
-            catch { /* تجاهل/سجل */ }
+            await Transcript.StopLiveTranscriptionAsync();
         };
     }
 
     [RelayCommand]
     private async Task Summarize()
     {
-        if (Transcript.Segments.Count == 0) return;
+        if (Transcript.Segments.Count == 0)
+            return;
 
         var lines = Transcript.Segments
             .Select(s => $"{s.SpeakerName}: {s.Text}");
@@ -45,5 +44,7 @@ public partial class MainViewModel : ObservableObject
 
     [RelayCommand]
     private async Task UploadFile()
-        => await Transcript.SimulateUploadAsync();
+    {
+        await Transcript.SimulateUploadAsync();
+    }
 }

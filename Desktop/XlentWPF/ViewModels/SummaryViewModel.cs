@@ -1,24 +1,26 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
-using XlentWPF.Models;
 using XlentWPF.Dtos;
+using XlentWPF.Models;
 
 namespace XlentWPF.ViewModels;
 
 public partial class SummaryViewModel : ObservableObject
 {
-    private const string ApiBaseUrl = "http://localhost:5239/";
-
     private readonly HttpClient _http;
 
-    public SummaryViewModel()
+    public SummaryViewModel(IConfiguration config)
     {
+        var baseUrl = config["ApiSettings:BaseUrl"]
+                      ?? throw new InvalidOperationException("Api BaseUrl not configured.");
+
         _http = new HttpClient
         {
-            BaseAddress = new Uri(ApiBaseUrl)
+            BaseAddress = new Uri(baseUrl)
         };
     }
 
@@ -53,7 +55,7 @@ public partial class SummaryViewModel : ObservableObject
             Summary = new SummaryResult
             {
                 Overview = api?.Summary?.Trim() ?? "",
-                KeyPoints = [], // API الحالي ما يرجّع KeyPoints
+                KeyPoints = [], 
                 ActionItems = api?.ActionItems ?? []
             };
         }

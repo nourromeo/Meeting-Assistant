@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
+using System;
 using System.Windows;
 using XlentWPF.Services.Mock;
-using XlentWPF.Services.Interfaces;   
+using XlentWPF.Services.Interfaces;
 using XlentWPF.ViewModels;
 using XlentWPF.Views;
 
@@ -17,13 +17,16 @@ namespace XlentWPF
         {
             base.OnStartup(e);
 
+            // Build configuration (reads appsettings.json from output folder)
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .Build();
 
+            // Build DI container
             var services = new ServiceCollection();
             RegisterServices(services, configuration);
+
             Services = services.BuildServiceProvider();
 
             var mainWindow = Services.GetRequiredService<MainWindow>();
@@ -32,16 +35,17 @@ namespace XlentWPF
 
         private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
         {
-            services.AddSingleton<IConfiguration>(configuration);
+            // Configuration
+            services.AddSingleton(configuration);
 
-            // Services (بدون أي Summary Service)
+            // Services (Mock)
             services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
             services.AddSingleton<IAudioService, MockAudioService>();
 
             // ViewModels
             services.AddSingleton<RecordingViewModel>();
             services.AddSingleton<TranscriptViewModel>();
-            services.AddSingleton<SummaryViewModel>();
+            services.AddSingleton<SummaryViewModel>(); // must have ctor (IConfiguration config)
             services.AddSingleton<MainViewModel>();
 
             // Views
