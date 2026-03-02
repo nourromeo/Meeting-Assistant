@@ -1,0 +1,135 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+    <!-- ── Base button ── -->
+    <Style x:Key="BaseBtn" TargetType="Button">
+        <Setter Property="Foreground"      Value="{StaticResource TextBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding"         Value="14,8"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="FontFamily"      Value="Consolas"/>
+        <Setter Property="FontSize"        Value="12"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Root"
+                         Background="{TemplateBinding Background}"
+                         BorderBrush="{TemplateBinding BorderBrush}"
+                         BorderThickness="{TemplateBinding BorderThickness}"
+                         CornerRadius="8"
+                         Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.82"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.65"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.32"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Record (red gradient) ── -->
+    <Style x:Key="RecordBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="Foreground"      Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#FF4757" Offset="0"/>
+                    <GradientStop Color="#FF6B6B" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Pause (amber) ── -->
+    <Style x:Key="PauseBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="Background"  Value="{StaticResource PauseTintBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource PauseBorderBrush}"/>
+        <Setter Property="Foreground"  Value="{StaticResource PauseBrush}"/>
+    </Style>
+
+    <!-- ── Stop / neutral ── -->
+    <Style x:Key="NeutralBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="Background"  Value="#14FFFFFF"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+    </Style>
+
+    <!-- ── Upload (blue) ── -->
+    <Style x:Key="UploadBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="Background"  Value="{StaticResource Accent2TintBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Accent2BorderBrush}"/>
+        <Setter Property="Foreground"  Value="{StaticResource Accent2Brush}"/>
+    </Style>
+
+    <!-- ── Summarize (teal gradient) ── -->
+    <Style x:Key="SummarizeBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="FontWeight"      Value="Bold"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground">
+            <Setter.Value>
+                <SolidColorBrush Color="#0D1A12"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Background">
+            <Setter.Value>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#00E5A0" Offset="0"/>
+                    <GradientStop Color="#00C87A" Offset="1"/>
+                </LinearGradientBrush>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ── Small panel button (Clear / Copy) ── -->
+    <Style x:Key="PanelBtn" TargetType="Button" BasedOn="{StaticResource BaseBtn}">
+        <Setter Property="Background"  Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="Foreground"  Value="{StaticResource MutedBrush}"/>
+        <Setter Property="Padding"     Value="8,4"/>
+        <Setter Property="FontSize"    Value="11"/>
+    </Style>
+
+    <!-- ── Mode tab (ToggleButton) ── -->
+    <Style x:Key="TabBtn" TargetType="ToggleButton">
+        <Setter Property="Padding"         Value="12,6"/>
+        <Setter Property="FontFamily"      Value="Consolas"/>
+        <Setter Property="FontSize"        Value="11"/>
+        <Setter Property="Foreground"      Value="{StaticResource MutedBrush}"/>
+        <Setter Property="Background"      Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor"          Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Root"
+                         Background="{TemplateBinding Background}"
+                         CornerRadius="7"
+                         Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Root" Property="Background"
+                                 Value="{StaticResource SurfaceBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Root" Property="Opacity" Value="0.8"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+</ResourceDictionary>

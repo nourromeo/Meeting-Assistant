@@ -1,0 +1,29 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ── Base palette ── -->
+    <SolidColorBrush x:Key="BgBrush"       Color="#0D0F14"/>
+    <SolidColorBrush x:Key="SurfaceBrush"  Color="#13161E"/>
+    <SolidColorBrush x:Key="Surface2Brush" Color="#1A1E2A"/>
+    <SolidColorBrush x:Key="BorderBrush"   Color="#252A38"/>
+    <SolidColorBrush x:Key="AccentBrush"   Color="#00E5A0"/>
+    <SolidColorBrush x:Key="Accent2Brush"  Color="#4F8EFF"/>
+    <SolidColorBrush x:Key="WarnBrush"     Color="#FF4757"/>
+    <SolidColorBrush x:Key="PauseBrush"    Color="#FFC947"/>
+    <SolidColorBrush x:Key="TextBrush"     Color="#E8EAF0"/>
+    <SolidColorBrush x:Key="MutedBrush"    Color="#5A6080"/>
+    <SolidColorBrush x:Key="SubtextBrush"  Color="#C8CFE0"/>
+
+    <!-- ── Transparent tints ── -->
+    <SolidColorBrush x:Key="AccentTintBrush"  Color="#1400E5A0"/>
+    <SolidColorBrush x:Key="Accent2TintBrush" Color="#1A4F8EFF"/>
+    <SolidColorBrush x:Key="WarnTintBrush"    Color="#1AFF4757"/>
+    <SolidColorBrush x:Key="PauseTintBrush"   Color="#26FFC947"/>
+
+    <!-- ── Border tints ── -->
+    <SolidColorBrush x:Key="AccentBorderBrush"  Color="#3300E5A0"/>
+    <SolidColorBrush x:Key="Accent2BorderBrush" Color="#404F8EFF"/>
+    <SolidColorBrush x:Key="WarnBorderBrush"    Color="#40FF4757"/>
+    <SolidColorBrush x:Key="PauseBorderBrush"   Color="#40FFC947"/>
+
+</ResourceDictionary>
