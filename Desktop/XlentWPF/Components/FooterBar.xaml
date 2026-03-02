@@ -1,0 +1,37 @@
+﻿<UserControl x:Class="XlentWPF.Components.FooterBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+        Padding="0,12" Margin="0,12,0,0">
+        <Grid>
+            <!-- Left info -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Ellipse Width="5" Height="5" Fill="{StaticResource AccentBrush}" Margin="0,0,6,0"/>
+                <TextBlock Text="Azure Speech SDK"
+               Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,18,0"/>
+                <Ellipse Width="5" Height="5" Fill="{StaticResource Accent2Brush}" Margin="0,0,6,0"/>
+                <TextBlock Text="GPT-4o mini"
+               Foreground="{StaticResource MutedBrush}" FontSize="11" Margin="0,0,18,0"/>
+                <TextBlock Text="{Binding WordCount, Mode=OneWay, StringFormat={}{0} words}"/>
+
+            </StackPanel>
+            <!-- Right version tag -->
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center"
+                Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                CornerRadius="20" Padding="10,4">
+                <TextBlock Text="✦ Meeting Assistant v1.0"
+                       Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

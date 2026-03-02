@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace XlentWPF.Models
+namespace XlentWPF.Services.Implementations
 {
-    class TestClass
+    public class OpenAiSummaryService
     {
     }
 }
