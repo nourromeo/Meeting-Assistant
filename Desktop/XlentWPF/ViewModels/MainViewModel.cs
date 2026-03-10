@@ -36,11 +36,9 @@ public partial class MainViewModel : ObservableObject
         if (Transcript.Segments.Count == 0)
             return;
 
-        var lines = Transcript.Segments
-            .Select(s => $"{s.SpeakerName}: {s.Text}");
-
-        await Summary.SummarizeAsync(lines);
+        await Summary.SummarizeAsync(Transcript.Segments);
     }
+
 
     [RelayCommand]
     private async Task UploadFile()

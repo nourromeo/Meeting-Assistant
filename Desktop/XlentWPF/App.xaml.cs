@@ -1,9 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
+using System.Net.Http;
 using System.Windows;
-using XlentWPF.Services.Mock;
+using XlentWPF.Services;
 using XlentWPF.Services.Interfaces;
+using XlentWPF.Services.Mock;
 using XlentWPF.ViewModels;
 using XlentWPF.Views;
 
@@ -42,10 +43,25 @@ namespace XlentWPF
             services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
             services.AddSingleton<IAudioService, MockAudioService>();
 
+            // Services
+            services.AddSingleton<ISummaryApiService>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var baseUrl = config["ApiSettings:BaseUrl"]
+                              ?? throw new InvalidOperationException("Api BaseUrl not configured.");
+
+                var http = new HttpClient
+                {
+                    BaseAddress = new Uri(baseUrl)
+                };
+
+                return new SummaryApiService(http);
+            });
+
             // ViewModels
             services.AddSingleton<RecordingViewModel>();
             services.AddSingleton<TranscriptViewModel>();
-            services.AddSingleton<SummaryViewModel>(); // must have ctor (IConfiguration config)
+            services.AddSingleton<SummaryViewModel>();
             services.AddSingleton<MainViewModel>();
 
             // Views

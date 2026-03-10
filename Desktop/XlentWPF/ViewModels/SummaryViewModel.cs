@@ -1,63 +1,34 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Configuration;
 using System.IO;
-using System.Net.Http;
-using System.Net.Http.Json;
-using XlentWPF.Dtos;
 using XlentWPF.Models;
+using XlentWPF.Services.Interfaces;
 
 namespace XlentWPF.ViewModels;
 
 public partial class SummaryViewModel : ObservableObject
 {
-    private readonly HttpClient _http;
+    private readonly ISummaryApiService _summaryApiService;
 
-    public SummaryViewModel(IConfiguration config)
+    public SummaryViewModel(ISummaryApiService summaryApiService)
     {
-        var baseUrl = config["ApiSettings:BaseUrl"]
-                      ?? throw new InvalidOperationException("Api BaseUrl not configured.");
-
-        _http = new HttpClient
-        {
-            BaseAddress = new Uri(baseUrl)
-        };
+        _summaryApiService = summaryApiService;
     }
 
     [ObservableProperty] private SummaryResult? _summary = null;
     [ObservableProperty] private bool _isSummarizing = false;
 
-    public async Task SummarizeAsync(IEnumerable<string> transcriptLines)
+    public async Task SummarizeAsync(IEnumerable<TranscriptSegment> transcriptSegments)
     {
-        var segments = (transcriptLines ?? Array.Empty<string>())
-            .Where(l => !string.IsNullOrWhiteSpace(l))
-            .Select(ToSegment)
-            .ToList();
-
-        if (segments.Count == 0) return;
+        if (transcriptSegments == null || !transcriptSegments.Any())
+            return;
 
         IsSummarizing = true;
         Summary = null;
 
         try
         {
-            var req = new MeetingSummaryRequestDto
-            {
-                Language = "en-US",
-                Transcript = segments
-            };
-
-            using var resp = await _http.PostAsJsonAsync("api/summary", req);
-            resp.EnsureSuccessStatusCode();
-
-            var api = await resp.Content.ReadFromJsonAsync<MeetingSummaryResponseDto>();
-
-            Summary = new SummaryResult
-            {
-                Overview = api?.Summary?.Trim() ?? "",
-                KeyPoints = [], 
-                ActionItems = api?.ActionItems ?? []
-            };
+            Summary = await _summaryApiService.SummarizeAsync(transcriptSegments);
         }
         catch (Exception ex)
         {
@@ -67,29 +38,6 @@ public partial class SummaryViewModel : ObservableObject
         {
             IsSummarizing = false;
         }
-    }
-
-    private static TranscriptSegmentDto ToSegment(string line)
-    {
-        var s = line.Trim();
-        var speaker = "unknown";
-        var text = s;
-
-        var idx = s.IndexOf(':');
-        if (idx > 0)
-        {
-            speaker = s[..idx].Trim();
-            text = s[(idx + 1)..].Trim();
-        }
-
-        return new TranscriptSegmentDto
-        {
-            SpeakerId = speaker,
-            Text = text,
-            StartOffsetSeconds = 0.0,
-            DurationSeconds = 0.0,
-            IsFinal = true
-        };
     }
 
     [RelayCommand]
@@ -118,5 +66,4 @@ public partial class SummaryViewModel : ObservableObject
 
         File.WriteAllText(dlg.FileName, sb.ToString());
     }
-
 }
