@@ -26,7 +26,6 @@ namespace XlentApi.Controllers
             if (request.Transcript == null || request.Transcript.Count == 0)
                 return BadRequest("Transcript is required.");
 
-            // نحول الـ transcript إلى نص واحد (سهل للـ LLM)
             var fullText = BuildTranscriptText(request.Transcript);
 
             try
