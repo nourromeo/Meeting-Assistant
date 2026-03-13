@@ -10,6 +10,7 @@ var config = builder.Configuration;
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 builder.Services.AddSingleton(sp =>
@@ -19,7 +20,9 @@ new AzureOpenAIClient(
 
 builder.Services.AddSingleton(provider =>
 {
-    var configuration = SpeechConfig.FromSubscription(config["AzureSpeechToText:ApiKey"], config["AzureSpeechToText:SpeechRegion"]);
+    var configuration = SpeechConfig.FromSubscription(
+        config["AzureSpeechToText:ApiKey"], 
+        config["AzureSpeechToText:SpeechRegion"]);
     configuration.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
     return configuration;
 });

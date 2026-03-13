@@ -16,6 +16,7 @@ namespace XlentApi.Services
             deploymentName = config["AzureOpenAI:DeploymentName"] ?? throw new ArgumentNullException("AzureOpenAI:Deployment");
         }
 
+
         public async Task TestApi()
         {
             ChatClient chatClient = azureClient.GetChatClient(deploymentName);
