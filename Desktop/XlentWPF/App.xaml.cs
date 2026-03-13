@@ -27,11 +27,8 @@ namespace XlentWPF
             // Build DI container
             var services = new ServiceCollection();
             RegisterServices(services, configuration);
-
             Services = services.BuildServiceProvider();
-
-            var mainWindow = Services.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            Services.GetRequiredService<MainWindow>().Show();
         }
 
         private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
