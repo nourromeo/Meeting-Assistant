@@ -24,7 +24,7 @@ public partial class RecordingViewModel : ObservableObject
         _audioService.AudioLevelChanged += OnAudioLevelChanged;
 
         // Initialize visualization bars
-        for (int i = 0; i < 80; i++) WaveformBars.Add(10);
+        for (int i = 0; i < 80; i++) WaveformBars.Add(3);
 
         _uiTimer.Tick += (_, _) =>
         {
