@@ -8,5 +8,6 @@ namespace XlentWPF.Dtos
     {
         public string Summary { get; set; } = "";
         public List<string> ActionItems { get; set; } = [];
+        public List<string> KeyPoints { get; set; } = [];
     }
 }
