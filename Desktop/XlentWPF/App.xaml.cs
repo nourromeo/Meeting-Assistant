@@ -1,70 +1,52 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http;
-using System.Windows;
-using XlentWPF.Services;
+using XlentWPF.Services.Implementations;
 using XlentWPF.Services.Interfaces;
-using XlentWPF.Services.Mock;
 using XlentWPF.ViewModels;
 using XlentWPF.Views;
+using System.Windows;
 
 namespace XlentWPF
 {
     public partial class App : Application
     {
-        public static IServiceProvider Services { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // Build configuration (reads appsettings.json from output folder)
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(AppContext.BaseDirectory)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .Build();
 
-            // Build DI container
             var services = new ServiceCollection();
-            RegisterServices(services, configuration);
+            ConfigureServices(services, configuration);
+            ServiceProvider = services.BuildServiceProvider();
 
-            Services = services.BuildServiceProvider();
-
-            var mainWindow = Services.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            ServiceProvider.GetRequiredService<MainWindow>().Show();
         }
 
-        private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
+        private void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
-            // Configuration
             services.AddSingleton(configuration);
 
-            // Services (Mock)
-            services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
-            services.AddSingleton<IAudioService, MockAudioService>();
-
-            // Services
-            services.AddSingleton<ISummaryApiService>(sp =>
+            // HttpClient for the backend API — carries the shared API key on every request
+            services.AddHttpClient<ISummaryService, SummaryService>(client =>
             {
-                var config = sp.GetRequiredService<IConfiguration>();
-                var baseUrl = config["ApiSettings:BaseUrl"]
-                              ?? throw new InvalidOperationException("Api BaseUrl not configured.");
-
-                var http = new HttpClient
-                {
-                    BaseAddress = new Uri(baseUrl)
-                };
-
-                return new SummaryApiService(http);
+                client.BaseAddress = new Uri(configuration["ApiSettings:BaseUrl"]!);
+                client.DefaultRequestHeaders.Add("X-Api-Key", configuration["ApiSettings:ApiKey"]);
             });
 
-            // ViewModels
-            services.AddSingleton<RecordingViewModel>();
-            services.AddSingleton<TranscriptViewModel>();
-            services.AddSingleton<SummaryViewModel>();
-            services.AddSingleton<MainViewModel>();
+            services.AddSingleton<IAudioService, AudioService>();
+            services.AddSingleton<ITranscriptionService, TranscriptionService>();
 
-            // Views
+            services.AddTransient<RecordingViewModel>();
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<TranscriptViewModel>();
+            services.AddTransient<SummaryViewModel>();
+
             services.AddSingleton<MainWindow>();
         }
     }

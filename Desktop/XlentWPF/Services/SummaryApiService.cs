@@ -6,11 +6,11 @@ using XlentWPF.Services.Interfaces;
 
 namespace XlentWPF.Services
 {
-    public class SummaryApiService : ISummaryApiService
+    public class SummaryService : ISummaryService
     {
         private readonly HttpClient _http;
 
-        public SummaryApiService(HttpClient http)
+        public SummaryService(HttpClient http)
         {
             _http = http;
         }
@@ -51,6 +51,11 @@ namespace XlentWPF.Services
                 KeyPoints = [],
                 ActionItems = api?.ActionItems ?? []
             };
+        }
+
+        public Task<SummaryResult> SummarizeAsync(IEnumerable<TranscriptSegmentDto> segments, string language = "sv-SE")
+        {
+            throw new NotImplementedException();
         }
     }
 }
