@@ -88,8 +88,8 @@ namespace XlentApi.Services
             {
                 foreach (var phrase in azureData.Phrases)
                 {
-                    //var rawSpeaker = phrase.Speaker?.ToString();
-                    //var speakerId = string.IsNullOrEmpty(rawSpeaker) ? "Unknown" : rawSpeaker;
+                    var rawSpeaker = phrase.Speaker?.ToString();
+                    var speakerId = string.IsNullOrEmpty(rawSpeaker) ? "Unknown" : rawSpeaker;
 
                     //if (!result.Speakers.ContainsKey(speakerId))
                     //{
@@ -98,7 +98,8 @@ namespace XlentApi.Services
 
                     result.Segments.Add(new FastTranscriptSegment
                     {
-                        SpeakerId = phrase.Speaker,
+                        //SpeakerId = phrase.Speaker,
+                        SpeakerId = speakerId,
                         Text = phrase.Text ?? string.Empty,
                         OffsetMilliseconds = phrase.OffsetMilliseconds,
                         DurationMilliseconds = phrase.DurationMilliseconds
