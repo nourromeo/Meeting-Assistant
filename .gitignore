@@ -421,3 +421,4 @@ FodyWeavers.xsd
 # Claude Code internal folder
 .claude/
 /Api/XlentApi/appsettings.json
+/Api/XlentApi/appsettings.json
