@@ -39,8 +39,8 @@ builder.Services.AddHttpClient<IFastTranscriptionService, FastTranscriptionServi
 
 builder.Services.AddSingleton(sp =>
 {
-    var endpoint = new Uri(config["AzureLanguage:Endpoint"]!);
-    var credential = new AzureKeyCredential(config["AzureLanguage:ApiKey"]!);
+    var endpoint = new Uri(config["AzureTextPIIRedaction:Endpoint"]!);
+    var credential = new AzureKeyCredential(config["AzureTextPIIRedaction:ApiKey"]!);
     return new TextAnalyticsClient(endpoint, credential);
 });
 
