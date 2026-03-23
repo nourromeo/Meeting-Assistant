@@ -1,5 +1,4 @@
 ﻿using System.Windows;
-using XlentWPF.Services.Mock;
 using XlentWPF.ViewModels;
 
 namespace XlentWPF.Views
