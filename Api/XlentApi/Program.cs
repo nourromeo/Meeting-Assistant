@@ -1,6 +1,8 @@
-using Azure.AI.OpenAI;
-using Microsoft.CognitiveServices.Speech;
 using System.Net.Http.Headers;
+using Azure;
+using Azure.AI.OpenAI;
+using Azure.AI.TextAnalytics;
+using Microsoft.CognitiveServices.Speech;
 using XlentApi.Hubs;
 using XlentApi.Interfaces;
 using XlentApi.Services;
@@ -35,9 +37,17 @@ builder.Services.AddHttpClient<IFastTranscriptionService, FastTranscriptionServi
     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 });
 
+builder.Services.AddSingleton(sp =>
+{
+    var endpoint = new Uri(config["AzureLanguage:Endpoint"]!);
+    var credential = new AzureKeyCredential(config["AzureLanguage:ApiKey"]!);
+    return new TextAnalyticsClient(endpoint, credential);
+});
+
 
 builder.Services.AddScoped<ISummaryService, SummaryService>();
 builder.Services.AddSingleton<ITranscriptionService, TranscriptionService>();
+builder.Services.AddSingleton<IPiiService, PiiService>();
 
 var app = builder.Build();
 

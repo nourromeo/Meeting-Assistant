@@ -11,16 +11,17 @@ namespace XlentApi.Controllers
     {
         private readonly IFastTranscriptionService _fastTranscriptionService;
         private readonly ITranscriptionService _transcriptionService;
-       
+        private readonly IPiiService _piiService;
 
         public TranscriptionController(
             IFastTranscriptionService fastTranscriptionService,
-            ITranscriptionService transcriptionService
+            ITranscriptionService transcriptionService,
+            IPiiService piiService
             )
         {
             _fastTranscriptionService = fastTranscriptionService;
             _transcriptionService = transcriptionService;
-            
+            _piiService = piiService;
         }
 
         [HttpPost("upload-fast")]
@@ -61,27 +62,16 @@ namespace XlentApi.Controllers
 
         // POST api/transcription/redact
         [HttpPost("redact")]
-        public async Task<IActionResult> RedactTranscript([FromBody] List<TranscriptSegment> transcript)
+        public async Task<IActionResult> RedactTranscript([FromBody] RedactionRequest request)
         {
-            if (transcript == null || transcript.Count == 0)
-                return BadRequest("Tomt transkript.");
-
-            var redacted = new List<TranscriptSegment>();
-            foreach (var seg in transcript)
+            if (request.Transcripts == null || request.Transcripts.Count == 0)
             {
-                // För demo, returnera originaltexten. I verkligheten skulle du anropa en PII-redigeringsservice här.
-
-                redacted.Add(new TranscriptSegment
-                {
-                    Text = seg.Text,
-                    SpeakerId = seg.SpeakerId,
-                    StartOffsetSeconds = seg.StartOffsetSeconds,
-                    DurationSeconds = seg.DurationSeconds,
-                    IsFinal = seg.IsFinal
-                });
+                return BadRequest("Tomt transkript.");
             }
 
-            return Ok(redacted);
+            var redactedTranscript = await _piiService.RedactTranscriptAsync(segments: request.Transcripts, language: request.Language, piiSettings: request.Settings);
+
+            return Ok(redactedTranscript);
         }
 
         // POST api/transcription/upload  — async batch; poll GET /{jobId} for result

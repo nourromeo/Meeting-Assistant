@@ -1,8 +1,9 @@
-﻿namespace XlentApi.Interfaces
+﻿using XlentApi.Models;
+
+namespace XlentApi.Interfaces
 {
     public interface IPiiService
     {
-        Task<string> RedactPiiAsync(string text);
-        string RedactPiiRegex(string text);
+        Task<List<TranscriptSegment>> RedactTranscriptAsync(IEnumerable<TranscriptSegment> segments, string language, PiiSettings piiSettings = null, CancellationToken cancellationToken = default);
     }
 }
