@@ -422,3 +422,4 @@ FodyWeavers.xsd
 .claude/
 /Api/XlentApi/appsettings.json
 /Api/XlentApi/appsettings.json
+/Api/XlentApi/appsettings.Development.json
