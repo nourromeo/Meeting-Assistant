@@ -6,60 +6,94 @@ using System.Text;
 
 namespace XlentWPF.Services.Implementations
 {
-   public class AudioService : IAudioService
+    public class AudioService : IAudioService
     {
         private WaveInEvent? _waveIn;
-        private WaveFileWriter? _writer;
-        private readonly string _tempPath = "recording.wav";
+        private bool _isCapturing;
+        private bool _disposed;
 
-        public bool IsCapturing { get; private set; }
+        private static readonly WaveFormat CaptureFormat = new(16_000, 16, 1);
+
+        public bool IsCapturing => _isCapturing;
+
+        public event Action<byte[]>? AudioDataAvailable;
         public event Action<float>? AudioLevelChanged;
-
 
         public Task StartAsync()
         {
+            if (_isCapturing) return Task.CompletedTask;
+
             _waveIn = new WaveInEvent
             {
-                WaveFormat = new WaveFormat(16000, 1) // 16kHz Mono: Ideal for AI STT
+                WaveFormat = CaptureFormat,
+                BufferMilliseconds = 100   // 100 ms chunks ≈ 3 200 bytes each
             };
 
             _waveIn.DataAvailable += OnDataAvailable;
-            _writer = new WaveFileWriter(_tempPath, _waveIn.WaveFormat);
-
             _waveIn.StartRecording();
-            IsCapturing = true;
+            _isCapturing = true;
+
             return Task.CompletedTask;
         }
 
-        private void OnDataAvailable(object? sender, WaveInEventArgs e)
+        public void Pause()
         {
-            _writer?.Write(e.Buffer, 0, e.BytesRecorded);
-
-            float max = 0;
-            var buffer = new WaveBuffer(e.Buffer);
-            int sampleCount = e.BytesRecorded / 2; // 16-bit = 2 bytes per sample
-            for (int i = 0; i < sampleCount; i++)
-            {
-                var sample = Math.Abs(buffer.ShortBuffer[i] / 32768f); // normalise to 0.0–1.0
-                if (sample > max) max = sample;
-            }
-
-            AudioLevelChanged?.Invoke(max);
+            if (!_isCapturing || _waveIn is null) return;
+            _waveIn.StopRecording();
+            _isCapturing = false;
         }
 
-
-        public void Pause() => _waveIn?.StopRecording();
-
-        public void Resume() => _waveIn?.StartRecording();
+        public void Resume()
+        {
+            if (_isCapturing || _waveIn is null) return;
+            _waveIn.StartRecording();
+            _isCapturing = true;
+        }
 
         public void Stop()
         {
-            IsCapturing = false;
-            _waveIn?.StopRecording();
-            _waveIn?.Dispose();
-            _writer?.Dispose();
+            if (_waveIn is null) return;
+            _waveIn.StopRecording();
+            _waveIn.DataAvailable -= OnDataAvailable;
+            _waveIn.Dispose();
+            _waveIn = null;
+            _isCapturing = false;
         }
 
-        public void Dispose() => Stop();
+        // ------------------------------------------------------------------ //
+
+        private void OnDataAvailable(object? sender, WaveInEventArgs e)
+        {
+            if (e.BytesRecorded == 0) return;
+
+            var buffer = new byte[e.BytesRecorded];
+            Array.Copy(e.Buffer, buffer, e.BytesRecorded);
+            AudioDataAvailable?.Invoke(buffer);
+            AudioLevelChanged?.Invoke(CalculateRmsLevel(e.Buffer, e.BytesRecorded));
+        }
+
+        private static float CalculateRmsLevel(byte[] buffer, int bytesRecorded)
+        {
+            int sampleCount = bytesRecorded / 2;   // 16-bit = 2 bytes per sample
+            if (sampleCount == 0) return 0f;
+
+            long sumSquares = 0;
+            for (int i = 0; i < bytesRecorded - 1; i += 2)
+            {
+                short sample = BitConverter.ToInt16(buffer, i);
+                sumSquares += (long)sample * sample;
+            }
+
+            double rms = Math.Sqrt((double)sumSquares / sampleCount);
+            return (float)Math.Min(rms / 32_768.0, 1.0);   // max Int16 = 32 768
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+            Stop();
+            _disposed = true;
+            GC.SuppressFinalize(this);
+        }
     }
 }

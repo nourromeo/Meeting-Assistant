@@ -13,6 +13,7 @@ public class MockAudioService : IAudioService
     public bool IsCapturing { get; private set; }
 
     public event Action<float>? AudioLevelChanged;
+    public event Action<byte[]> AudioDataAvailable;
 
     public MockAudioService()
     {

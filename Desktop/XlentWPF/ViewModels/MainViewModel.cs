@@ -36,13 +36,32 @@ public partial class MainViewModel : ObservableObject
         if (Transcript.Segments.Count == 0)
             return;
 
-        await Summary.SummarizeAsync(Transcript.Segments);
+        var lines = Transcript.Segments
+            .Select(s => $"{s.SpeakerName}: {s.Text}")
+            .ToList();
+
+        // Auto-detect language: Swedish if any segment contains å, ä, or ö
+        var allText = string.Concat(Transcript.Segments.Select(s => s.Text));
+        var language = allText.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö')
+            ? "sv-SE"
+            : "en-US";
+
+        await Summary.SummarizeAsync(lines, language);
     }
+
 
 
     [RelayCommand]
     private async Task UploadFile()
     {
-        await Transcript.SimulateUploadAsync();
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Select audio file",
+            Filter = "Audio files|*.wav;*.mp3;*.ogg;*.m4a|All files|*.*"
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        await Transcript.TranscribeFileAsync(dlg.FileName);
     }
 }
