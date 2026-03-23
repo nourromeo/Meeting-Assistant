@@ -11,11 +11,14 @@ public partial class TranscriptViewModel : ObservableObject
 {
     private readonly ITranscriptionService _transcriptionService;
 
-    [ObservableProperty] private string _partialText = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    private string _partialText = string.Empty;
     [ObservableProperty] private int _wordCount = 0;
     [ObservableProperty] private bool _isUploading = false;
     [ObservableProperty] private double _uploadProgress = 0;
 
+    public bool ShowEmptyState => !IsUploading && Segments.Count == 0;
     public ObservableCollection<TranscriptSegment> Segments { get; } = [];
 
     public TranscriptViewModel(ITranscriptionService transcriptionService)
@@ -24,6 +27,7 @@ public partial class TranscriptViewModel : ObservableObject
         _transcriptionService.SegmentRecognised += OnSegmentRecognised;
         _transcriptionService.PartialResultReceived += text =>
             App.Current.Dispatcher.Invoke(() => PartialText = text);
+        Segments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ShowEmptyState));
     }
 
     private void OnSegmentRecognised(TranscriptSegment segment)
