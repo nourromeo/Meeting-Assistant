@@ -60,7 +60,24 @@
                                 Visibility="{Binding Summary.IsSummarizing, Converter={StaticResource BoolVis}}">
                         <TextBlock Text="⟳" FontSize="32" HorizontalAlignment="Center"
                                    Foreground="{StaticResource AccentBrush}"
-                                   Opacity="0.7" Margin="0,0,0,10"/>
+                                   Opacity="0.7" Margin="0,0,0,10"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <TextBlock.RenderTransform>
+                                <RotateTransform x:Name="SpinnerRotate"/>
+                            </TextBlock.RenderTransform>
+                            <TextBlock.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="SpinnerRotate"
+                                                Storyboard.TargetProperty="Angle"
+                                                From="0" To="360" Duration="0:0:1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </TextBlock.Triggers>
+                        </TextBlock>
                         <TextBlock Text="Generating summary…"
                                    Foreground="{StaticResource MutedBrush}"
                                    FontSize="12" TextAlignment="Center"/>

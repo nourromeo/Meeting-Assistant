@@ -27,6 +27,7 @@ builder.Services.AddSingleton(provider =>
         config["AzureSpeechToText:ApiKey"], 
         config["AzureSpeechToText:SpeechRegion"]);
     configuration.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
+    configuration.SetProperty(PropertyId.SpeechServiceConnection_LanguageIdMode, "Continuous");
     return configuration;
 });
 

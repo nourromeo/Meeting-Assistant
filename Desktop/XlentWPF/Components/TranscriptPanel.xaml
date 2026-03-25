@@ -52,10 +52,37 @@
             <ScrollViewer Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
                 <StackPanel>
 
-                    <!-- Empty state -->
+                    <!-- Uploading spinner -->
                     <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
-                                Visibility="{Binding Transcript.Segments.Count,
-                                    Converter={StaticResource InvBoolVis}}">
+                                Visibility="{Binding Transcript.IsUploading, Converter={StaticResource BoolVis}}">
+                        <TextBlock Text="⟳" FontSize="32" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Opacity="0.7" Margin="0,0,0,10"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <TextBlock.RenderTransform>
+                                <RotateTransform x:Name="UploadSpinnerRotate"/>
+                            </TextBlock.RenderTransform>
+                            <TextBlock.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="UploadSpinnerRotate"
+                                                Storyboard.TargetProperty="Angle"
+                                                From="0" To="360" Duration="0:0:1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </TextBlock.Triggers>
+                        </TextBlock>
+                        <TextBlock Text="Transcribing audio…"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   FontSize="12" TextAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Empty state (not uploading AND no segments) -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
+                                Visibility="{Binding Transcript.ShowEmptyState, Converter={StaticResource BoolVis}}">
                         <TextBlock Text="🎙" FontSize="32" Opacity="0.4"
                                    HorizontalAlignment="Center" Margin="0,0,0,10"/>
                         <TextBlock Text="Press Record to start live transcription"
