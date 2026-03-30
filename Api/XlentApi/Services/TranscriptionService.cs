@@ -1,5 +1,6 @@
 ﻿using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.CognitiveServices.Speech.Transcription;
 using System.Collections.Concurrent;
 using XlentApi.Interfaces;
 using XlentApi.Models;
@@ -15,7 +16,7 @@ namespace XlentApi.Services
 
         private sealed record LiveSession(
         PushAudioInputStream PushStream,
-        SpeechRecognizer Recognizer,
+        ConversationTranscriber Transcriber,
         CancellationTokenSource Cts);
 
         // In-memory job store 
@@ -39,7 +40,7 @@ namespace XlentApi.Services
         {
             var job = new TranscriptionJob
             {
-                JobId = Guid.NewGuid().ToString(),
+                JobId = Guid.NewGuid().ToString("N"),
                 Status = TranscriptionStatus.Queued,
                 CreatedAt = DateTime.UtcNow
             };
@@ -111,18 +112,17 @@ namespace XlentApi.Services
             var pushStream = AudioInputStream.CreatePushStream(audioFormat);
             var audioConfig = AudioConfig.FromStreamInput(pushStream);
 
-            // Auto-detect between Swedish and English on every utterance
-            var autoDetect = AutoDetectSourceLanguageConfig.FromLanguages(["sv-SE", "en-US"]);
-            var recognizer = new SpeechRecognizer(_speechConfig, autoDetect, audioConfig);
+            // ConversationTranscriber supports per-utterance speaker diarization
+            var transcriber = new ConversationTranscriber(_speechConfig, audioConfig);
 
-            recognizer.Recognized += async (_, e) =>
+            transcriber.Transcribed += async (_, e) =>
             {
                 if (e.Result.Reason == ResultReason.RecognizedSpeech && !string.IsNullOrWhiteSpace(e.Result.Text))
                 {
                     var segment = new TranscriptSegment
                     {
                         Text = e.Result.Text,
-                        SpeakerId = "live-speaker",
+                        SpeakerId = e.Result.SpeakerId,
                         StartOffsetSeconds = e.Result.OffsetInTicks / 10_000_000.0,
                         DurationSeconds = e.Result.Duration.TotalSeconds,
                         IsFinal = true
@@ -131,16 +131,16 @@ namespace XlentApi.Services
                 }
             };
 
-            recognizer.Canceled += async (_, e) =>
+            transcriber.Canceled += async (_, e) =>
             {
                 if (e.Reason == CancellationReason.Error)
                     await onError($"Azure Speech error {e.ErrorCode}: {e.ErrorDetails}");
             };
 
             var cts = new CancellationTokenSource();
-            _sessions[sessionId] = new LiveSession(pushStream, recognizer, cts);
+            _sessions[sessionId] = new LiveSession(pushStream, transcriber, cts);
 
-            await recognizer.StartContinuousRecognitionAsync();
+            await transcriber.StartTranscribingAsync();
         }
 
 
@@ -157,8 +157,8 @@ namespace XlentApi.Services
             if (!_sessions.TryRemove(sessionId, out var session)) return;
 
             session.PushStream.Close();
-            await session.Recognizer.StopContinuousRecognitionAsync();
-            session.Recognizer.Dispose();
+            await session.Transcriber.StopTranscribingAsync();
+            session.Transcriber.Dispose();
             session.Cts.Dispose();
         }
     }

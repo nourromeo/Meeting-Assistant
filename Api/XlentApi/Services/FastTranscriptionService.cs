@@ -99,7 +99,7 @@ namespace XlentApi.Services
                     result.Segments.Add(new FastTranscriptSegment
                     {
                         //SpeakerId = phrase.Speaker,
-                        SpeakerId = speakerId,
+                        SpeakerId = phrase.Speaker,
                         Text = phrase.Text ?? string.Empty,
                         OffsetMilliseconds = phrase.OffsetMilliseconds,
                         DurationMilliseconds = phrase.DurationMilliseconds

@@ -17,7 +17,7 @@ namespace XlentApi.Models
         //[JsonPropertyName("speakerId")]
         //public int? SpeakerId { get; set; }
         [JsonPropertyName("speakerId")]
-        public string SpeakerId { get; set; } = string.Empty;
+        public int? SpeakerId { get; set; }
 
         [JsonPropertyName("text")]
         public string Text { get; set; } = string.Empty;
