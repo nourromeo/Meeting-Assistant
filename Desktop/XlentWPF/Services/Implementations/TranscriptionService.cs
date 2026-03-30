@@ -63,8 +63,8 @@ namespace XlentWPF.Services.Implementations
             progress?.Report(100);
 
             return result.Segments
-                .Select(s => MapSegment(s.SpeakerId, s.Text, s.StartOffsetSeconds))
-                .ToList();
+            .Select(s => MapSegment(s.SpeakerId ?? 1, s.Text, s.StartOffsetSeconds))
+            .ToList();
         }
 
         // ── LIVE (SignalR) ───────────────────────────────────────────────────
@@ -124,6 +124,18 @@ namespace XlentWPF.Services.Implementations
             return client;
         }
 
+        private static TranscriptSegment MapSegment(int speakerId, string text, double offsetSeconds)
+        {
+            var idx = Math.Clamp(speakerId, 1, 4);
+            return new TranscriptSegment
+            {
+                SpeakerName = $"Person {idx}",
+                SpeakerIndex = idx,
+                Timestamp = FormatTimestamp(offsetSeconds),
+                Text = text
+            };
+        }
+
         private static TranscriptSegment MapSegment(string speakerId, string text, double offsetSeconds)
         {
             var idx = ParseSpeakerIndex(speakerId);
@@ -138,11 +150,18 @@ namespace XlentWPF.Services.Implementations
 
         private static int ParseSpeakerIndex(string speakerId)
         {
+            // Plain integer (e.g. "1", "2") — from batch/fast transcription
+            if (int.TryParse(speakerId, out var direct))
+                return Math.Clamp(direct, 1, 4);
+
+            // "X-N" format (e.g. "Guest-1", "SPEAKER-2") — from ConversationTranscriber
             var dash = speakerId.LastIndexOf('-');
             if (dash >= 0 && int.TryParse(speakerId[(dash + 1)..], out var n))
                 return Math.Clamp(n, 1, 4);
+
             return 1;
         }
+
 
         private static string FormatTimestamp(double seconds)
         {

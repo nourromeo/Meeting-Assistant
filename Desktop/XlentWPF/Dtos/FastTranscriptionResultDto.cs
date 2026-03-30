@@ -12,7 +12,7 @@ namespace XlentWPF.Dtos
 
     public class FastTranscriptSegmentDto
     {
-        public string SpeakerId { get; set; } = "";
+        public int? SpeakerId { get; set; } = null;
         public string Text { get; set; } = "";
         public double StartOffsetSeconds { get; set; }
         public double DurationSeconds { get; set; }
