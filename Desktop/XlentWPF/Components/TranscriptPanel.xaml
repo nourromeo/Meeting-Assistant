@@ -44,6 +44,8 @@
                         <Button Content="Clear" Style="{StaticResource PanelBtn}"
                                 Command="{Binding Transcript.ClearCommand}" Margin="0,0,6,0"/>
                         <Button Content="Copy"  Style="{StaticResource PanelBtn}"/>
+                        <Button Content="Hide personal info" Command="{Binding Transcript.ToggleHidePIICommand}"
+                                Style="{StaticResource PanelBtn}" Margin="6,0,0,0"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -104,12 +106,13 @@
                                         <!-- Speaker + timestamp -->
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                             <Border CornerRadius="10" Padding="7,2"
-                                                    Background="{Binding SpeakerIndex,
-                                                        Converter={StaticResource SpeakerBg}}">
-                                                <TextBlock Text="{Binding SpeakerName}"
-                                                           Foreground="{Binding SpeakerIndex,
-                                                               Converter={StaticResource SpeakerFg}}"
-                                                           FontSize="10" FontWeight="Medium"/>
+                                                    >
+                                                <TextBox Text="{Binding SpeakerName, Mode=TwoWay}"
+                                                           Background="Transparent"
+                                                          Foreground="{Binding SpeakerIndex, Converter={StaticResource SpeakerFg}}"
+                                                          Width="60px"
+                                                         BorderThickness="0"
+                                                         FontSize="10" FontWeight="Medium"/>
                                             </Border>
                                             <TextBlock Text="{Binding Timestamp}"
                                                        Foreground="{StaticResource MutedBrush}"

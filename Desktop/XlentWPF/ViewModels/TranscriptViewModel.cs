@@ -17,6 +17,7 @@ public partial class TranscriptViewModel : ObservableObject
     [ObservableProperty] private int _wordCount = 0;
     [ObservableProperty] private bool _isUploading = false;
     [ObservableProperty] private double _uploadProgress = 0;
+    
 
     public bool ShowEmptyState => !IsUploading && Segments.Count == 0;
     public ObservableCollection<TranscriptSegment> Segments { get; } = [];
@@ -41,6 +42,18 @@ public partial class TranscriptViewModel : ObservableObject
 
     public void AddSegment(TranscriptSegment segment)
     {
+        segment.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(TranscriptSegment.SpeakerName)) return;
+
+            var newName = segment.SpeakerName;
+            foreach (var s in Segments)
+            {
+                if (s.SpeakerIndex == segment.SpeakerIndex && s != segment)
+                    s.SpeakerName = newName;
+            }
+        };
+
         Segments.Add(segment);
         WordCount += segment.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
     }
@@ -121,6 +134,20 @@ public partial class TranscriptViewModel : ObservableObject
 
         var lines = Segments.Select(s => $"[{s.Timestamp}] {s.SpeakerName}: {s.Text}");
         File.WriteAllLines(dlg.FileName, lines);
+    }
+
+    [RelayCommand]
+    private void ToggleHidePII()
+    {
+        // Implement the logic to toggle hiding personal information
+    }
+
+    [RelayCommand]
+    private void CopyToClipboard()
+    {
+        if (Segments.Count == 0) return;
+        var text = string.Join(Environment.NewLine, Segments.Select(s => $"[{s.Timestamp}] {s.SpeakerName}: {s.Text}"));
+        System.Windows.Clipboard.SetText(text);
     }
 }
 
