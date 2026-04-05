@@ -36,7 +36,9 @@ namespace XlentApi.Services
             {
                 diarizationSettings = new
                 {
-                    enabled = true
+                    enabled = true,
+                    minSpeakers = 1,
+                    maxSpeakers = 5
                 };
             }
 

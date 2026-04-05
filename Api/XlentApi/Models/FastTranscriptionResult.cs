@@ -14,8 +14,7 @@ namespace XlentApi.Models
 
     public class FastTranscriptSegment
     {
-        //[JsonPropertyName("speakerId")]
-        //public int? SpeakerId { get; set; }
+        
         [JsonPropertyName("speakerId")]
         public int? SpeakerId { get; set; }
 
