@@ -45,13 +45,22 @@ namespace XlentWPF.Services.Implementations
 
             using var content = new MultipartFormDataContent();
             var streamContent = new StreamContent(fileStream);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+
+            var mimeType = Path.GetExtension(filePath).ToLower() switch
+            {
+                ".mp3" => "audio/mpeg",
+                ".m4a" => "audio/mp4",
+                ".ogg" => "audio/ogg",
+                _ => "audio/wav"
+            };
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
             content.Add(streamContent, "file", Path.GetFileName(filePath));
 
             progress?.Report(20);
 
             var response = await http.PostAsync(
-                "api/transcription/upload-fast", content, cancellationToken);
+           "api/transcription/upload-fast?expectedSpeakers=3", content, cancellationToken);
+
 
             progress?.Report(70);
             response.EnsureSuccessStatusCode();

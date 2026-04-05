@@ -72,7 +72,7 @@ public partial class TranscriptViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine($"[TranscriptViewModel] Could not start live transcription: {ex.Message}");
             App.Current.Dispatcher.Invoke(() =>
                 System.Windows.MessageBox.Show(
-                    $"Could not connect to the transcription service.\n\nMake sure the API is running on http://localhost:5001\n\nDetail: {ex.Message}",
+                    $"Could not connect to the transcription service.\n\nMake sure the API is running on http://localhost:5239\n\nDetail: {ex.Message}",
                     "Connection Error",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning));
