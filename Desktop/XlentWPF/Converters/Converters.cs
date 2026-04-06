@@ -60,6 +60,15 @@ public class SpeakerIndexToBrushConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+/// <summary>empty/whitespace string → Collapsed, non-empty → Visible</summary>
+public class EmptyStringToVisibilityConverter : IValueConverter
+{
+    public object Convert(object value, Type t, object p, CultureInfo c)
+        => value is string s && !string.IsNullOrEmpty(s) ? Visibility.Visible : Visibility.Collapsed;
+    public object ConvertBack(object value, Type t, object p, CultureInfo c)
+        => throw new NotImplementedException();
+}
+
 /// <summary>Maps speaker index 1-4 to a semi-transparent background Brush.</summary>
 public class SpeakerIndexToBackgroundConverter : IValueConverter
 {

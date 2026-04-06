@@ -71,6 +71,26 @@ public partial class SummaryViewModel : ObservableObject
     private void Clear() => Summary = null;
 
     [RelayCommand]
+    private void CopyToClipboard()
+    {
+        if (Summary is null) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine(Summary.Overview);
+        if (Summary.KeyPoints?.Count > 0)
+        {
+            sb.AppendLine();
+            foreach (var kp in Summary.KeyPoints) sb.AppendLine($"• {kp}");
+        }
+        if (Summary.ActionItems?.Count > 0)
+        {
+            sb.AppendLine();
+            foreach (var a in Summary.ActionItems) sb.AppendLine($"☐ {a}");
+        }
+        System.Windows.Clipboard.SetText(sb.ToString().TrimEnd());
+    }
+
+    [RelayCommand]
     private void Download()
     {
         if (Summary is null) return;

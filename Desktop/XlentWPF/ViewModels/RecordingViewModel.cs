@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XlentWPF.Services.Interfaces;
-using NAudio.Wave;
 using System.Windows.Threading;
 
 
@@ -35,13 +34,10 @@ public partial class RecordingViewModel : ObservableObject
 
     private void OnAudioLevelChanged(float level)
     {
-        // level is 0.0 to 1.0. We map it to our bar height (e.g., 3 to 40)
         App.Current.Dispatcher.Invoke(() =>
         {
-            // Shift bars to the left and add new value at the end
             for (int i = 0; i < WaveformBars.Count - 1; i++)
                 WaveformBars[i] = WaveformBars[i + 1];
-
             WaveformBars[WaveformBars.Count - 1] = 3 + (level * 35);
         });
     }
@@ -95,10 +91,11 @@ public partial class RecordingViewModel : ObservableObject
         _                        => "#6B7280"   // gray
     };
 
-    public event Action? RecordingStarted;
-    public event Action? RecordingStopped;
+    // Func<Task> events so callers can properly await async handlers
+    public event Func<Task>? RecordingStarted;
+    public event Func<Task>? RecordingStopped;
 
-    // --- Mode switch commands (bound to the two ToggleButtons in HeaderBar) ---
+    // --- Mode switch commands ---
 
     [RelayCommand]
     private void SwitchToLive() => CurrentMode = AppMode.Live;
@@ -121,7 +118,8 @@ public partial class RecordingViewModel : ObservableObject
         State = RecordingState.Recording;
         _uiTimer.Start();
         WaveformLabel = "Mic active";
-        RecordingStarted?.Invoke();
+        if (RecordingStarted != null)
+            await RecordingStarted.Invoke();
     }
 
     [RelayCommand(CanExecute = nameof(CanPause))]
@@ -150,11 +148,15 @@ public partial class RecordingViewModel : ObservableObject
         _audioService.Stop();
         State = RecordingState.Stopped;
         _uiTimer.Stop();
-        _elapsedSeconds = 0;
-        TimerText = "00:00:00";
         WaveformLabel = "No signal";
         FlattenWaveform();
-        RecordingStopped?.Invoke();
+
+        if (RecordingStopped != null)
+            await RecordingStopped.Invoke();
+
+        // Reset the timer only after transcription has fully stopped
+        _elapsedSeconds = 0;
+        TimerText = "00:00:00";
     }
 
     private void FlattenWaveform()

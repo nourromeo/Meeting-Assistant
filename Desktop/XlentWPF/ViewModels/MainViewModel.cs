@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace XlentWPF.ViewModels;
@@ -18,10 +18,12 @@ public partial class MainViewModel : ObservableObject
         Transcript = transcript;
         Summary = summary;
 
-        // Start/stop transcription based on recording state
+        // Func<Task> events — properly awaited, exceptions surface correctly
+        // Language is null here: the API uses AutoDetectSourceLanguageConfig and
+        // picks Swedish vs English per utterance automatically — no client-side guessing.
         Recording.RecordingStarted += async () =>
         {
-            await Transcript.StartLiveTranscriptionAsync();
+            await Transcript.StartLiveTranscriptionAsync(language: null);
         };
 
         Recording.RecordingStopped += async () =>
@@ -40,16 +42,11 @@ public partial class MainViewModel : ObservableObject
             .Select(s => $"{s.SpeakerName}: {s.Text}")
             .ToList();
 
-        // Auto-detect language: Swedish if any segment contains å, ä, or ö
         var allText = string.Concat(Transcript.Segments.Select(s => s.Text));
-        var language = allText.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö')
-            ? "sv-SE"
-            : "en-US";
+        var language = DetectLanguage(allText);
 
         await Summary.SummarizeAsync(lines, language);
     }
-
-
 
     [RelayCommand]
     private async Task UploadFile()
@@ -64,4 +61,8 @@ public partial class MainViewModel : ObservableObject
 
         await Transcript.TranscribeFileAsync(dlg.FileName);
     }
+
+    // Auto-detect language by looking for Swedish-specific characters
+    private static string DetectLanguage(string text) =>
+        text.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö') ? "sv-SE" : "en-US";
 }

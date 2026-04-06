@@ -1,8 +1,6 @@
 ﻿using XlentWPF.Services.Interfaces;
 using NAudio.Wave;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace XlentWPF.Services.Implementations
 {
@@ -26,7 +24,7 @@ namespace XlentWPF.Services.Implementations
             _waveIn = new WaveInEvent
             {
                 WaveFormat = CaptureFormat,
-                BufferMilliseconds = 100   // 100 ms chunks ≈ 3 200 bytes each
+                BufferMilliseconds = 250   // 250 ms chunks ≈ 8 000 bytes — more acoustic context per push
             };
 
             _waveIn.DataAvailable += OnDataAvailable;

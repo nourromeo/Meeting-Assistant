@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
-using XlentWPF.Dtos;
-using XlentWPF.Models;
-using XlentWPF.Services.Interfaces;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using XlentWPF.Dtos;
+using XlentWPF.Models;
+using XlentWPF.Services.Interfaces;
 
 
 namespace XlentWPF.Services.Implementations
@@ -16,6 +16,8 @@ namespace XlentWPF.Services.Implementations
         private readonly string _baseUrl;
         private readonly string _apiKey;
         private readonly IAudioService _audio;
+        // Single shared HttpClient — avoids socket exhaustion from per-request instances
+        private readonly HttpClient _http;
 
         private HubConnection? _hub;
         private CancellationTokenSource? _liveCts;
@@ -29,24 +31,27 @@ namespace XlentWPF.Services.Implementations
             _baseUrl = (configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5001/").TrimEnd('/');
             _apiKey = configuration["ApiSettings:ApiKey"] ?? string.Empty;
             _audio = audio;
+
+            _http = new HttpClient { BaseAddress = new Uri(_baseUrl + "/") };
+            _http.DefaultRequestHeaders.Add("X-Api-Key", _apiKey);
         }
 
         // ── FILE UPLOAD ──────────────────────────────────────────────────────
 
         public async Task<IReadOnlyList<TranscriptSegment>> TranscribeFileAsync(
             string filePath,
+            int expectedSpeakers = 2,
             IProgress<int>? progress = null,
             CancellationToken cancellationToken = default)
         {
             progress?.Report(5);
 
-            using var http = CreateHttpClient();
             await using var fileStream = File.OpenRead(filePath);
 
             using var content = new MultipartFormDataContent();
             var streamContent = new StreamContent(fileStream);
 
-            var mimeType = Path.GetExtension(filePath).ToLower() switch
+            var mimeType = Path.GetExtension(filePath).ToLowerInvariant() switch
             {
                 ".mp3" => "audio/mpeg",
                 ".m4a" => "audio/mp4",
@@ -58,9 +63,10 @@ namespace XlentWPF.Services.Implementations
 
             progress?.Report(20);
 
-            var response = await http.PostAsync(
-           "api/transcription/upload-fast?expectedSpeakers=3", content, cancellationToken);
-
+            var response = await _http.PostAsync(
+                $"api/transcription/upload-fast?expectedSpeakers={expectedSpeakers}",
+                content,
+                cancellationToken);
 
             progress?.Report(70);
             response.EnsureSuccessStatusCode();
@@ -72,31 +78,78 @@ namespace XlentWPF.Services.Implementations
             progress?.Report(100);
 
             return result.Segments
-            .Select(s => MapSegment(s.SpeakerId ?? 1, s.Text, s.StartOffsetSeconds))
-            .ToList();
+                .Select(s => MapSegment(s.SpeakerId ?? 1, s.Text, s.StartOffsetSeconds))
+                .ToList();
+        }
+
+        // ── PII REDACTION ────────────────────────────────────────────────────
+
+        public async Task<IReadOnlyList<TranscriptSegment>> RedactAsync(
+            IReadOnlyList<TranscriptSegment> segments,
+            string language = "sv",
+            CancellationToken cancellationToken = default)
+        {
+            // Map desktop segments to the DTO the API expects
+            var requestDto = new RedactionRequestDto
+            {
+                Language = language,
+                Settings = new PiiSettings(),
+                Transcripts = segments.Select(s => new TranscriptSegment
+                {
+                    SpeakerName = s.SpeakerName,
+                    SpeakerIndex = s.SpeakerIndex,
+                    Timestamp = s.Timestamp,
+                    Text = s.Text
+                }).ToList()
+            };
+
+            var response = await _http.PostAsJsonAsync(
+                "api/transcription/redact", requestDto, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var redacted = await response.Content
+                .ReadFromJsonAsync<List<TranscriptSegment>>(cancellationToken: cancellationToken)
+                ?? [];
+
+            return redacted;
         }
 
         // ── LIVE (SignalR) ───────────────────────────────────────────────────
 
-        public async Task StartLiveAsync()
+        public async Task StartLiveAsync(string? language = null)
         {
             _liveCts = new CancellationTokenSource();
 
-            var hubUrl = $"{_baseUrl}/hubs/transcription?apiKey={Uri.EscapeDataString(_apiKey)}";
+            // API key passed via AccessTokenProvider (Bearer header) — not in the URL query string
+            var hubUrl = $"{_baseUrl}/hubs/transcription";
+            var apiKey = _apiKey;
 
             _hub = new HubConnectionBuilder()
-                .WithUrl(hubUrl)
+                .WithUrl(hubUrl, options =>
+                {
+                    options.AccessTokenProvider = () => Task.FromResult<string?>(apiKey);
+                })
                 .WithAutomaticReconnect()
                 .Build();
 
+            // Final recognized segment — add to transcript
             _hub.On<TranscriptSegmentDto>("SegmentReceived", dto =>
                 SegmentRecognised?.Invoke(MapSegment(dto.SpeakerId, dto.Text, dto.StartOffsetSeconds)));
 
+            // Intermediate/partial text — shown as live preview while speaking
+            _hub.On<string>("PartialResultReceived", text =>
+                PartialResultReceived?.Invoke(text));
+
+            // Status/error messages — surface to Debug output
             _hub.On<string>("StatusChanged", status =>
-                System.Diagnostics.Debug.WriteLine($"[SignalR] {status}"));
+            {
+                System.Diagnostics.Debug.WriteLine($"[SignalR] {status}");
+                if (status.StartsWith("Error:", StringComparison.OrdinalIgnoreCase))
+                    PartialResultReceived?.Invoke($"[{status}]");
+            });
 
             await _hub.StartAsync(_liveCts.Token);
-            await _hub.InvokeAsync("StartLive", _liveCts.Token);
+            await _hub.InvokeAsync("StartLive", language, _liveCts.Token);
 
             _audio.AudioDataAvailable += ForwardAudioChunk;
         }
@@ -123,19 +176,18 @@ namespace XlentWPF.Services.Implementations
         private void ForwardAudioChunk(byte[] chunk)
         {
             if (_hub?.State != HubConnectionState.Connected) return;
-            _ = _hub.InvokeAsync("SendAudioChunk", chunk);
-        }
-
-        private HttpClient CreateHttpClient()
-        {
-            var client = new HttpClient { BaseAddress = new Uri(_baseUrl + "/") };
-            client.DefaultRequestHeaders.Add("X-Api-Key", _apiKey);
-            return client;
+            _ = _hub.InvokeAsync("SendAudioChunk", chunk)
+                    .ContinueWith(t =>
+                    {
+                        if (t.IsFaulted)
+                            System.Diagnostics.Debug.WriteLine(
+                                $"[Audio] Chunk send failed: {t.Exception?.GetBaseException().Message}");
+                    }, TaskContinuationOptions.OnlyOnFaulted);
         }
 
         private static TranscriptSegment MapSegment(int speakerId, string text, double offsetSeconds)
         {
-            var idx = Math.Clamp(speakerId, 1, 4);
+            var idx = Math.Clamp(speakerId, 1, 8);
             return new TranscriptSegment
             {
                 SpeakerName = $"Person {idx}",
@@ -161,16 +213,15 @@ namespace XlentWPF.Services.Implementations
         {
             // Plain integer (e.g. "1", "2") — from batch/fast transcription
             if (int.TryParse(speakerId, out var direct))
-                return Math.Clamp(direct, 1, 4);
+                return Math.Clamp(direct, 1, 8);
 
             // "X-N" format (e.g. "Guest-1", "SPEAKER-2") — from ConversationTranscriber
             var dash = speakerId.LastIndexOf('-');
             if (dash >= 0 && int.TryParse(speakerId[(dash + 1)..], out var n))
-                return Math.Clamp(n, 1, 4);
+                return Math.Clamp(n, 1, 8);
 
             return 1;
         }
-
 
         private static string FormatTimestamp(double seconds)
         {
@@ -184,7 +235,9 @@ namespace XlentWPF.Services.Implementations
         {
             if (_disposed) return;
             _disposed = true;
-            StopLiveAsync().GetAwaiter().GetResult();
+            // Do not block with .GetResult() — fire-and-forget cleanup to avoid UI thread deadlock
+            _ = StopLiveAsync();
+            _http.Dispose();
             GC.SuppressFinalize(this);
         }
     }

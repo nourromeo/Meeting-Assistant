@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="XlentWPF.Components.TranscriptPanel"
+<UserControl x:Class="XlentWPF.Components.TranscriptPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:XlentWPF.Converters">
@@ -7,10 +7,11 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
-            <conv:BoolToVisibilityConverter        x:Key="BoolVis"/>
-            <conv:InverseBoolToVisibilityConverter x:Key="InvBoolVis"/>
-            <conv:SpeakerIndexToBrushConverter     x:Key="SpeakerFg"/>
-            <conv:SpeakerIndexToBackgroundConverter x:Key="SpeakerBg"/>
+            <conv:BoolToVisibilityConverter               x:Key="BoolVis"/>
+            <conv:InverseBoolToVisibilityConverter        x:Key="InvBoolVis"/>
+            <conv:EmptyStringToVisibilityConverter        x:Key="EmptyStrVis"/>
+            <conv:SpeakerIndexToBrushConverter            x:Key="SpeakerFg"/>
+            <conv:SpeakerIndexToBackgroundConverter       x:Key="SpeakerBg"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -35,25 +36,39 @@
                             <TextBlock Text="📝" FontSize="11"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock Text="LIVE TRANSCRIPTION"
-                                   Foreground="{StaticResource TextBrush}"
+                        <!-- Heading reflects the current mode -->
+                        <TextBlock Foreground="{StaticResource TextBrush}"
                                    FontFamily="Segoe UI" FontWeight="Bold"
-                                   FontSize="12" VerticalAlignment="Center"/>
+                                   FontSize="12" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="LIVE TRANSCRIPTION"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Recording.IsUploadMode}" Value="True">
+                                            <Setter Property="Text" Value="TRANSCRIPTION"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Clear" Style="{StaticResource PanelBtn}"
                                 Command="{Binding Transcript.ClearCommand}" Margin="0,0,6,0"/>
                         <Button Content="Copy"  Style="{StaticResource PanelBtn}"
-                                Command="{Binding Transcript.CopyToClipboardCommand}"/>
-                        
-                        <Button Content="Hide personal info" Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PanelBtn}" Margin="6,0,0,0"/>
+                                Command="{Binding Transcript.CopyToClipboardCommand}" Margin="0,0,6,0"/>
+                        <ToggleButton
+                                Content="{Binding Transcript.PiiButtonLabel}"
+                                IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
+                                Command="{Binding Transcript.ToggleHidePIICommand}"
+                                Style="{StaticResource PiiToggleBtn}"/>
                     </StackPanel>
                 </Grid>
             </Border>
 
-            <!-- Body -->
-            <ScrollViewer Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
+            <!-- Body — named so the code-behind can auto-scroll it -->
+            <ScrollViewer x:Name="TranscriptScroll"
+                          Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
                 <StackPanel>
 
                     <!-- Uploading spinner -->
@@ -105,14 +120,14 @@
                                         BorderThickness="0,0,0,1"
                                         Padding="0,0,0,12" Margin="0,0,0,12">
                                     <StackPanel>
-                                        <!-- Speaker + timestamp -->
+                                        <!-- Speaker tag (colored background) + timestamp -->
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                             <Border CornerRadius="10" Padding="7,2"
-                                                    >
-                                                <TextBox Text="{Binding SpeakerName, Mode=TwoWay}"
-                                                           Background="Transparent"
-                                                          Foreground="{Binding SpeakerIndex, Converter={StaticResource SpeakerFg}}"
-                                                          Width="60px"
+                                                    Background="{Binding SpeakerIndex, Converter={StaticResource SpeakerBg}}">
+                                                <TextBox Text="{Binding SpeakerName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         Background="Transparent"
+                                                         Foreground="{Binding SpeakerIndex, Converter={StaticResource SpeakerFg}}"
+                                                         Width="80"
                                                          BorderThickness="0"
                                                          FontSize="10" FontWeight="Medium"/>
                                             </Border>
@@ -121,7 +136,7 @@
                                                        FontSize="10" Margin="8,0,0,0"
                                                        VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <!-- Text -->
+                                        <!-- Segment text -->
                                         <TextBlock Text="{Binding Text}"
                                                    Foreground="{StaticResource TextBrush}"
                                                    FontSize="13" TextWrapping="Wrap"
@@ -131,6 +146,26 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+
+                    <!-- Partial (live typing) preview — shown while Azure is still recognizing -->
+                    <Border Padding="0,4,0,8"
+                            Visibility="{Binding Transcript.HasPartialText, Converter={StaticResource BoolVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="✎ " FontSize="11"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       VerticalAlignment="Top" Margin="0,2,4,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Transcript.PartialText}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       FontSize="13" FontStyle="Italic"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.75"/>
+                        </Grid>
+                    </Border>
 
                 </StackPanel>
             </ScrollViewer>
