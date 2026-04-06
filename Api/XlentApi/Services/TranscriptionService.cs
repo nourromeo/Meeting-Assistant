@@ -19,15 +19,14 @@ namespace XlentApi.Services
             ConversationTranscriber Transcriber,
             CancellationTokenSource Cts);
 
-        // In-memory job store with creation timestamp for TTL cleanup
+        
         private readonly ConcurrentDictionary<string, TranscriptionJob> _jobs = new();
         private static readonly TimeSpan JobTtl = TimeSpan.FromMinutes(30);
 
-        // Active real-time sessions keyed by sessionId
+      
         private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
 
-        // Languages offered to the Azure LID engine.
-        // Azure auto-detects which one is being spoken per utterance.
+    
         private static readonly string[] RecognitionLanguages = ["sv-SE", "en-US"];
 
 
@@ -122,13 +121,20 @@ namespace XlentApi.Services
             var pushStream = AudioInputStream.CreatePushStream(audioFormat);
             var audioConfig = AudioConfig.FromStreamInput(pushStream);
 
-            // Use Azure's built-in Language Identification so it auto-detects Swedish vs
-            // English per utterance. This eliminates the client-side language-guessing bug
-            // where an empty transcript always yields "en-US" at session start.
-            var autoDetect = AutoDetectSourceLanguageConfig.FromLanguages(RecognitionLanguages);
+            ConversationTranscriber transcriber;
 
-            // ConversationTranscriber with LID — speaker diarization + language detection
-            var transcriber = new ConversationTranscriber(config, autoDetect, audioConfig);
+            if (!string.IsNullOrWhiteSpace(language))
+            {
+                // Give AI maximum context/accuracy head-start when an explicit language is selected
+                config.SpeechRecognitionLanguage = language;
+                transcriber = new ConversationTranscriber(config, audioConfig);
+            }
+            else
+            {
+                // Use Azure's built-in Language Identification to auto-detect per utterance.
+                var autoDetect = AutoDetectSourceLanguageConfig.FromLanguages(RecognitionLanguages);
+                transcriber = new ConversationTranscriber(config, autoDetect, audioConfig);
+            }
 
             // Intermediate/partial results — fires every few hundred ms while speaking
             transcriber.Transcribing += async (_, e) =>
@@ -196,10 +202,6 @@ namespace XlentApi.Services
         //  Helpers                                                            //
         // ------------------------------------------------------------------ //
 
-        /// <summary>
-        /// Creates a fresh SpeechConfig with all accuracy-relevant properties set.
-        /// We cannot clone SpeechConfig directly, so properties must be applied explicitly.
-        /// </summary>
         private SpeechConfig BuildSessionConfig()
         {
             var c = SpeechConfig.FromSubscription(
@@ -209,13 +211,17 @@ namespace XlentApi.Services
             // Return raw text — profanity filter masks words and looks like missing words
             c.SetProperty(PropertyId.SpeechServiceResponse_ProfanityOption, "Raw");
 
+            // Enable TrueText post-processing to remove disfluencies (uh, um), fix casing, and improve readability automatically via AI
+            c.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
+
             // Emit speaker tags on intermediate results (live preview)
             c.SetProperty(
                 PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
 
             // Silence after which the current utterance is finalized and a new one begins.
-            // 800ms: responsive but not so tight it cuts off mid-sentence pauses.
-            c.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "800");
+            // 1200ms (up from 800ms) allows Azure a broader context window to analyze the full sentence 
+            // before segmenting, significantly improving spelling and punctuation accuracy.
+            c.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "1200");
 
             // Keep the session alive through long pauses between speakers
             c.SetProperty(

@@ -24,25 +24,23 @@ builder.Services.AddSingleton(provider =>
         config["AzureSpeechToText:ApiKey"],
         config["AzureSpeechToText:SpeechRegion"]);
 
-    // Default language — overridden per session by AutoDetect
+    
     speechConfig.SpeechRecognitionLanguage =
         config["AzureSpeechToText:Language"] ?? "sv-SE";
 
-    // Return raw text — never mask or remove words with profanity filter
+  
     speechConfig.SetProperty(
         PropertyId.SpeechServiceResponse_ProfanityOption, "Raw");
 
-    // Intermediate speaker diarization during recognition
+   
     speechConfig.SetProperty(
         PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
 
-    // How long silence must last before an utterance is finalized (800ms is
-    // a good balance: responsive without cutting off mid-sentence pauses)
+   
     speechConfig.SetProperty(
         PropertyId.Speech_SegmentationSilenceTimeoutMs, "800");
 
-    // How long the SDK waits with no speech before ending the session.
-    // Keep high so long pauses between speakers don't close the session.
+
     speechConfig.SetProperty(
         PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, "15000");
 
