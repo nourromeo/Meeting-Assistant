@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using XlentApi.Interfaces;
 
 namespace XlentApi.Hubs
@@ -20,17 +20,24 @@ namespace XlentApi.Hubs
             _logger = logger;
         }
 
-        public async Task StartLive()
+        // language: optional BCP-47 tag (e.g. "sv-SE", "en-US").
+        // Defaults to whatever is configured in appsettings when null.
+        public async Task StartLive(string? language = null)
         {
             var connectionId = Context.ConnectionId;
             var hubContext = _hubContext;
 
             await _transcription.CreateRealTimeSessionAsync(
                 sessionId: connectionId,
+                language: language,
 
                 onSegmentRecognized: async segment =>
                     await hubContext.Clients.Client(connectionId)
                                             .SendAsync("SegmentReceived", segment),
+
+                onPartialResult: async text =>
+                    await hubContext.Clients.Client(connectionId)
+                                            .SendAsync("PartialResultReceived", text),
 
                 onError: async message =>
                 {
@@ -42,14 +49,12 @@ namespace XlentApi.Hubs
             await Clients.Caller.SendAsync("StatusChanged", "Live session started");
         }
 
-      
         public async Task SendAudioChunk(byte[] audioChunk)
         {
             if (audioChunk == null || audioChunk.Length == 0) return;
             await _transcription.PushAudioChunkAsync(Context.ConnectionId, audioChunk);
         }
 
-       
         public async Task StopLive()
         {
             await _transcription.StopRealTimeSessionAsync(Context.ConnectionId);
@@ -64,6 +69,4 @@ namespace XlentApi.Hubs
             await base.OnDisconnectedAsync(exception);
         }
     }
-
 }
-

@@ -25,11 +25,12 @@ namespace XlentApi.Services
 
             if (expectedSpeakers.HasValue && expectedSpeakers > 0)
             {
+                // Use a ±1 range so Azure can adapt if the actual count differs slightly
                 diarizationSettings = new
                 {
                     enabled = true,
-                    minSpeakers = expectedSpeakers.Value,
-                    maxSpeakers = expectedSpeakers.Value,
+                    minSpeakers = Math.Max(1, expectedSpeakers.Value - 1),
+                    maxSpeakers = Math.Min(8, expectedSpeakers.Value + 1),
                 };
             }
             else
@@ -38,7 +39,7 @@ namespace XlentApi.Services
                 {
                     enabled = true,
                     minSpeakers = 1,
-                    maxSpeakers = 5
+                    maxSpeakers = 8
                 };
             }
 
