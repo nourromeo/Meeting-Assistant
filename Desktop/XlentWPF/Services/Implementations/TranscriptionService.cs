@@ -87,19 +87,20 @@ namespace XlentWPF.Services.Implementations
         public async Task<IReadOnlyList<TranscriptSegment>> RedactAsync(
             IReadOnlyList<TranscriptSegment> segments,
             string language = "sv",
+            PiiSettings? settings = null,
             CancellationToken cancellationToken = default)
         {
-            // Map desktop segments to the DTO the API expects
             var requestDto = new RedactionRequestDto
             {
                 Language = language,
-                Settings = new PiiSettings(),
-                Transcripts = segments.Select(s => new TranscriptSegment
+                Settings = settings ?? new PiiSettings(),
+                Transcripts = segments.Select(s => new TranscriptSegmentDto
                 {
-                    SpeakerName = s.SpeakerName,
-                    SpeakerIndex = s.SpeakerIndex,
-                    Timestamp = s.Timestamp,
-                    Text = s.Text
+                    Text = s.Text,
+                    SpeakerId = s.SpeakerName,
+                    StartOffsetSeconds = 0,
+                    DurationSeconds = 0,
+                    IsFinal = true
                 }).ToList()
             };
 
