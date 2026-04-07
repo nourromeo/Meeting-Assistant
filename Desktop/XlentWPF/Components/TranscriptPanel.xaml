@@ -57,11 +57,60 @@
                                 Command="{Binding Transcript.ClearCommand}" Margin="0,0,6,0"/>
                         <Button Content="Copy"  Style="{StaticResource PanelBtn}"
                                 Command="{Binding Transcript.CopyToClipboardCommand}" Margin="0,0,6,0"/>
-                        <ToggleButton
+                        <ToggleButton x:Name="PiiToggle"
                                 Content="{Binding Transcript.PiiButtonLabel}"
                                 IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
                                 Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PiiToggleBtn}"/>
+                                Style="{StaticResource PiiToggleBtn}"
+                                Margin="0,0,4,0"/>
+                        <Button x:Name="PiiSettingsBtn" Content="⚙"
+                                Style="{StaticResource PanelBtn}"
+                                Click="PiiSettingsBtn_Click"
+                                ToolTip="PII Redaction Settings"/>
+                        <Popup x:Name="PiiSettingsPopup"
+                               PlacementTarget="{Binding ElementName=PiiSettingsBtn}"
+                               Placement="Top"
+                               StaysOpen="False"
+                               AllowsTransparency="True">
+                            <Border Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="4">
+                                <StackPanel Width="180">
+                                    <TextBlock Text="PII Redaction"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="12"
+                                               Margin="0,0,0,10"/>
+                                    <CheckBox Content="Personnummer"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactPersonnummer}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Names"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactNames}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Emails"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactEmails}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Phone numbers"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactPhoneNumbers}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Addresses"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactAddress}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Organizations"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactOrganizations}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
                     </StackPanel>
                 </Grid>
             </Border>

@@ -19,5 +19,6 @@ public interface ITranscriptionService : IDisposable
     Task<IReadOnlyList<TranscriptSegment>> RedactAsync(
         IReadOnlyList<TranscriptSegment> segments,
         string language = "sv",
+        PiiSettings? settings = null,
         CancellationToken cancellationToken = default);
 }

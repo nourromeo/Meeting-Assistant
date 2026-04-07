@@ -25,6 +25,8 @@ public partial class TranscriptViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
     private bool _isHidingPii = false;
 
+    [ObservableProperty] private PiiSettings _piiSettings = new();
+
     public bool   ShowEmptyState  => !IsUploading && Segments.Count == 0;
     public bool   HasPartialText  => !string.IsNullOrEmpty(PartialText);
     public string PiiButtonLabel  => IsHidingPii ? "Show personal info" : "Hide personal info";
@@ -165,13 +167,12 @@ public partial class TranscriptViewModel : ObservableObject
     {
         if (Segments.Count == 0) return;
 
-        if (!_isHidingPii)
+        if (!IsHidingPii)
         {
-            // Save originals and redact
             try
             {
                 var redacted = await _transcriptionService.RedactAsync(
-                    Segments.ToList(), _detectedLanguage);
+                    Segments.ToList(), _detectedLanguage, PiiSettings);
 
                 for (int i = 0; i < Segments.Count && i < redacted.Count; i++)
                 {
@@ -187,7 +188,6 @@ public partial class TranscriptViewModel : ObservableObject
         }
         else
         {
-            // Restore originals
             foreach (var s in Segments)
             {
                 if (s.OriginalText is not null)
