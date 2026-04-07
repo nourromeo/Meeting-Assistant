@@ -40,10 +40,14 @@ namespace XlentWPF.Components
 
         private void ScrollToBottom()
         {
-            // Defer to after layout pass so the new item is measured before scrolling
             Dispatcher.BeginInvoke(
                 () => TranscriptScroll.ScrollToEnd(),
                 DispatcherPriority.Background);
+        }
+
+        private void PiiSettingsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            PiiSettingsPopup.IsOpen = !PiiSettingsPopup.IsOpen;
         }
     }
 }

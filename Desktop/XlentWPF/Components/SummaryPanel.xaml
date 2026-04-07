@@ -54,14 +54,14 @@
 
             <!-- Body -->
             <ScrollViewer Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
-                <StackPanel>
+                <StackPanel Margin="20,20,20,20">
 
                     <!-- Spinner -->
                     <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
                                 Visibility="{Binding Summary.IsSummarizing, Converter={StaticResource BoolVis}}">
                         <TextBlock Text="⟳" FontSize="32" HorizontalAlignment="Center"
                                    Foreground="{StaticResource AccentBrush}"
-                                   Opacity="0.7" Margin="0,0,0,10"
+                                   Opacity="0.7" Margin="10,10,10,10"
                                    RenderTransformOrigin="0.5,0.5">
                             <TextBlock.RenderTransform>
                                 <RotateTransform x:Name="SpinnerRotate"/>
