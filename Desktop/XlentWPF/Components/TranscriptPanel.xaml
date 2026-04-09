@@ -118,7 +118,7 @@
             <!-- Body — named so the code-behind can auto-scroll it -->
             <ScrollViewer x:Name="TranscriptScroll"
                           Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
-                <StackPanel Margin="20,20,20,20">
+                <StackPanel  Margin="20,20,20,20">
 
                     <!-- Uploading spinner -->
                     <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
