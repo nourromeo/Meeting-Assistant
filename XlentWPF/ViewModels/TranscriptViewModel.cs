@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Threading;
 using XlentWPF.Models;
 using XlentWPF.Services.Interfaces;
 
@@ -10,7 +11,9 @@ namespace XlentWPF.ViewModels;
 public partial class TranscriptViewModel : ObservableObject
 {
     private readonly ITranscriptionService _transcriptionService;
+    private readonly SemaphoreSlim _piiOperationLock = new(1, 1);
     private string _detectedLanguage = "sv";
+    private bool _isTogglingPii;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
@@ -57,6 +60,8 @@ public partial class TranscriptViewModel : ObservableObject
             PartialText = string.Empty;
             AddSegment(segment);
         });
+
+        _ = RedactSegmentIfNeededAsync(segment);
     }
 
     public void AddSegment(TranscriptSegment segment)
@@ -165,38 +170,77 @@ public partial class TranscriptViewModel : ObservableObject
     [RelayCommand]
     private async Task ToggleHidePII()
     {
-        if (Segments.Count == 0) return;
+        if (Segments.Count == 0 || _isTogglingPii) return;
+        _isTogglingPii = true;
 
-        if (!IsHidingPii)
+        await _piiOperationLock.WaitAsync();
+        try
         {
-            try
+            if (!IsHidingPii)
             {
-                var redacted = await _transcriptionService.RedactAsync(
-                    Segments.ToList(), _detectedLanguage, PiiSettings);
-
-                for (int i = 0; i < Segments.Count && i < redacted.Count; i++)
+                try
                 {
-                    Segments[i].OriginalText = Segments[i].Text;
-                    Segments[i].Text = redacted[i].Text;
+                    var redacted = await _transcriptionService.RedactAsync(
+                        Segments.ToList(), _detectedLanguage, PiiSettings);
+
+                    for (int i = 0; i < Segments.Count && i < redacted.Count; i++)
+                    {
+                        Segments[i].OriginalText ??= Segments[i].Text;
+                        Segments[i].Text = redacted[i].Text;
+                    }
+                    IsHidingPii = true;
                 }
-                IsHidingPii = true;
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[PII] Redaction failed: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                System.Diagnostics.Debug.WriteLine($"[PII] Redaction failed: {ex.Message}");
+                foreach (var s in Segments)
+                {
+                    if (s.OriginalText is not null)
+                    {
+                        s.Text = s.OriginalText;
+                        s.OriginalText = null;
+                    }
+                }
+                IsHidingPii = false;
             }
         }
-        else
+        finally
         {
-            foreach (var s in Segments)
+            _piiOperationLock.Release();
+            _isTogglingPii = false;
+        }
+    }
+
+    private async Task RedactSegmentIfNeededAsync(TranscriptSegment segment)
+    {
+        if (!IsHidingPii) return;
+
+        await _piiOperationLock.WaitAsync();
+        try
+        {
+            if (!IsHidingPii) return;
+
+            segment.OriginalText ??= segment.Text;
+
+            var redacted = await _transcriptionService.RedactAsync(
+                new[] { segment }, _detectedLanguage, PiiSettings);
+
+            if (IsHidingPii && redacted.Count > 0)
             {
-                if (s.OriginalText is not null)
-                {
-                    s.Text = s.OriginalText;
-                    s.OriginalText = null;
-                }
+                segment.Text = redacted[0].Text;
             }
-            IsHidingPii = false;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PII] Live segment redaction failed: {ex.Message}");
+        }
+        finally
+        {
+            _piiOperationLock.Release();
         }
     }
 

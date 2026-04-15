@@ -23,7 +23,7 @@ namespace XlentApi.Services
             RegexOptions.Compiled, RegexTimeout);
 
         private static readonly Regex PhoneRegex = new Regex(
-            @"(?:(?:\+|00)46|0)[1-9](?:[\s-]?\d){5,8}\b",
+            @"(?<!\w)(?:(?:\+|00)\s?46|0)[\s-]?(?:\(?\d{1,3}\)?[\s-]?)?(?:\d[\s.-]?){5,8}\d(?!\w)",
             RegexOptions.Compiled, RegexTimeout);
 
         public PiiService(TextAnalyticsClient textAnalyticsClient, ILogger<PiiService> logger)
