@@ -32,8 +32,9 @@ namespace XlentApi.Services
             _logger = logger;
         }
 
-        public async Task<List<TranscriptSegment>> RedactTranscriptAsync(IEnumerable<TranscriptSegment> segments, string language, PiiSettings piiSettings, CancellationToken cancellationToken = default)
+        public async Task<List<TranscriptSegment>> RedactTranscriptAsync(IEnumerable<TranscriptSegment> segments, string language, PiiSettings? piiSettings, CancellationToken cancellationToken = default)
         {
+            piiSettings ??= new PiiSettings();
             var redactedSegments = new List<TranscriptSegment>();
             var batchDocuments = new List<TextDocumentInput>();
 
