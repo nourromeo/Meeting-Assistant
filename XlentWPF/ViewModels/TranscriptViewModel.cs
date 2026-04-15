@@ -47,7 +47,7 @@ public partial class TranscriptViewModel : ObservableObject
         : IsHidingPii ? "Hidden" : "Visible";
     public string PiiActionLabel => IsHidingPii ? "Show" : "Hide";
     public string PiiButtonLabel  => IsPiiOperationInProgress
-        ? "Working..."
+        ? "Masking..."
         : IsHidingPii ? "Show personal info" : "Hide personal info";
 
     public ObservableCollection<TranscriptSegment> Segments { get; } = [];

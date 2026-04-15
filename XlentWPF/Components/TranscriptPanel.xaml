@@ -68,7 +68,7 @@
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="172"/>
                             <ColumnDefinition Width="6"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -83,7 +83,8 @@
                                 IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
                                 IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
                                 Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PiiToggleBtn}"/>
+                                Style="{StaticResource PiiToggleBtn}"
+                                HorizontalAlignment="Stretch"/>
 
                         <Button Grid.Column="6" x:Name="PiiSettingsBtn" Content="⚙"
                                 Style="{StaticResource PanelBtn}"
