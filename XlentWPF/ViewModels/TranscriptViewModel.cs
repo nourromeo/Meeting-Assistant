@@ -79,6 +79,46 @@ public partial class TranscriptViewModel : ObservableObject
         WordCount += segment.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
     }
 
+    public async Task<IReadOnlyList<string>> GetSummaryLinesAsync()
+    {
+        if (Segments.Count == 0) return Array.Empty<string>();
+
+        if (!IsHidingPii)
+        {
+            return Segments
+                .Select(s => $"{s.SpeakerName}: {s.Text}")
+                .ToList();
+        }
+
+        await _piiOperationLock.WaitAsync();
+        try
+        {
+            var current = Segments.ToList();
+            var redacted = await _transcriptionService.RedactAsync(
+                current, _detectedLanguage, PiiSettings);
+
+            var lines = new List<string>(current.Count);
+            for (int i = 0; i < current.Count; i++)
+            {
+                var text = i < redacted.Count ? redacted[i].Text : current[i].Text;
+                lines.Add($"{current[i].SpeakerName}: {text}");
+            }
+
+            return lines;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PII] Summary redaction failed, using current text: {ex.Message}");
+            return Segments
+                .Select(s => $"{s.SpeakerName}: {s.Text}")
+                .ToList();
+        }
+        finally
+        {
+            _piiOperationLock.Release();
+        }
+    }
+
     private void OnSegmentSpeakerNameChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(TranscriptSegment.SpeakerName)) return;
