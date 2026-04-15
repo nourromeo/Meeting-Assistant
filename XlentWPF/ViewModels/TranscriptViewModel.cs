@@ -28,11 +28,19 @@ public partial class TranscriptViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
     private bool _isHidingPii = false;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(IsPiiToggleEnabled))]
+    private bool _isPiiOperationInProgress;
+
     [ObservableProperty] private PiiSettings _piiSettings = new();
 
     public bool   ShowEmptyState  => !IsUploading && Segments.Count == 0;
     public bool   HasPartialText  => !string.IsNullOrEmpty(PartialText);
-    public string PiiButtonLabel  => IsHidingPii ? "Show personal info" : "Hide personal info";
+    public bool   IsPiiToggleEnabled => !IsPiiOperationInProgress;
+    public string PiiButtonLabel  => IsPiiOperationInProgress
+        ? "Working..."
+        : IsHidingPii ? "Show personal info" : "Hide personal info";
 
     public ObservableCollection<TranscriptSegment> Segments { get; } = [];
 
@@ -172,6 +180,7 @@ public partial class TranscriptViewModel : ObservableObject
     {
         if (Segments.Count == 0 || _isTogglingPii) return;
         _isTogglingPii = true;
+        IsPiiOperationInProgress = true;
 
         await _piiOperationLock.WaitAsync();
         try
@@ -211,6 +220,7 @@ public partial class TranscriptViewModel : ObservableObject
         finally
         {
             _piiOperationLock.Release();
+            IsPiiOperationInProgress = false;
             _isTogglingPii = false;
         }
     }
