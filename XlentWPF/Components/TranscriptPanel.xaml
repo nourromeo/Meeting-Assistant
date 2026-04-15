@@ -57,13 +57,18 @@
                                 Command="{Binding Transcript.ClearCommand}" Margin="0,0,6,0"/>
                         <Button Content="Copy"  Style="{StaticResource PanelBtn}"
                                 Command="{Binding Transcript.CopyToClipboardCommand}" Margin="0,0,6,0"/>
-                        <ToggleButton x:Name="PiiToggle"
-                                Content="{Binding Transcript.PiiButtonLabel}"
-                                IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
-                                IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
-                                Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PiiToggleBtn}"
-                                Margin="0,0,4,0"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0">
+                            <TextBlock Text="{Binding Transcript.PiiStatusLabel}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0"/>
+                            <Button x:Name="PiiToggle"
+                                    Content="{Binding Transcript.PiiActionLabel}"
+                                    IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
+                                    Command="{Binding Transcript.ToggleHidePIICommand}"
+                                    Style="{StaticResource PanelBtn}"/>
+                        </StackPanel>
                         <Button x:Name="PiiSettingsBtn" Content="⚙"
                                 Style="{StaticResource PanelBtn}"
                                 Click="PiiSettingsBtn_Click"

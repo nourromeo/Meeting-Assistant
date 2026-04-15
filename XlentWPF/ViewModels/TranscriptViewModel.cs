@@ -26,10 +26,14 @@ public partial class TranscriptViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(PiiStatusLabel))]
+    [NotifyPropertyChangedFor(nameof(PiiActionLabel))]
     private bool _isHidingPii = false;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
+    [NotifyPropertyChangedFor(nameof(PiiStatusLabel))]
+    [NotifyPropertyChangedFor(nameof(PiiActionLabel))]
     [NotifyPropertyChangedFor(nameof(IsPiiToggleEnabled))]
     private bool _isPiiOperationInProgress;
 
@@ -38,6 +42,10 @@ public partial class TranscriptViewModel : ObservableObject
     public bool   ShowEmptyState  => !IsUploading && Segments.Count == 0;
     public bool   HasPartialText  => !string.IsNullOrEmpty(PartialText);
     public bool   IsPiiToggleEnabled => !IsPiiOperationInProgress;
+    public string PiiStatusLabel => IsPiiOperationInProgress
+        ? "Masking..."
+        : IsHidingPii ? "Hidden" : "Visible";
+    public string PiiActionLabel => IsHidingPii ? "Show" : "Hide";
     public string PiiButtonLabel  => IsPiiOperationInProgress
         ? "Working..."
         : IsHidingPii ? "Show personal info" : "Hide personal info";
