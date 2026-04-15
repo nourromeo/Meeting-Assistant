@@ -122,6 +122,37 @@ public partial class TranscriptViewModel : ObservableObject
         }
     }
 
+    public async Task<IReadOnlyList<string>> RedactTextLinesAsync(IReadOnlyList<string> lines)
+    {
+        if (lines.Count == 0) return Array.Empty<string>();
+
+        await _piiOperationLock.WaitAsync();
+        try
+        {
+            var textSegments = lines.Select(t => new TranscriptSegment
+            {
+                SpeakerName = "Summary",
+                SpeakerIndex = 1,
+                Timestamp = string.Empty,
+                Text = t ?? string.Empty
+            }).ToList();
+
+            var redacted = await _transcriptionService.RedactAsync(
+                textSegments, _detectedLanguage, PiiSettings);
+
+            return redacted.Select(s => s.Text).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[PII] Summary line redaction failed: {ex.Message}");
+            return lines.ToList();
+        }
+        finally
+        {
+            _piiOperationLock.Release();
+        }
+    }
+
     private void OnSegmentSpeakerNameChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName != nameof(TranscriptSegment.SpeakerName)) return;

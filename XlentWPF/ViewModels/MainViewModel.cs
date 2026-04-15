@@ -2,12 +2,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.ComponentModel;
 using System.Threading;
+using XlentWPF.Models;
 
 namespace XlentWPF.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
     private readonly SemaphoreSlim _summarySyncLock = new(1, 1);
+    private SummaryResult? _summaryBeforeMasking;
 
     public RecordingViewModel Recording { get; }
     public TranscriptViewModel Transcript { get; }
@@ -74,7 +76,6 @@ public partial class MainViewModel : ObservableObject
     {
         if (e.PropertyName != nameof(TranscriptViewModel.IsHidingPii)) return;
         if (Summary.Summary is null) return;
-        if (Transcript.Segments.Count == 0) return;
 
         _ = SyncSummaryWithPiiStateAsync();
     }
@@ -85,17 +86,59 @@ public partial class MainViewModel : ObservableObject
 
         try
         {
-            var lines = await Transcript.GetSummaryLinesAsync();
-            if (lines.Count == 0) return;
+            if (Summary.Summary is null) return;
 
-            var allText = string.Concat(lines);
-            var language = DetectLanguage(allText);
+            if (Transcript.IsHidingPii)
+            {
+                if (_summaryBeforeMasking is null)
+                {
+                    _summaryBeforeMasking = CloneSummary(Summary.Summary);
+                }
 
-            await Summary.SummarizeAsync(lines, language);
+                var original = _summaryBeforeMasking;
+                var linesToMask = new List<string>
+                {
+                    original.Overview
+                };
+                linesToMask.AddRange(original.KeyPoints);
+                linesToMask.AddRange(original.ActionItems);
+
+                var masked = await Transcript.RedactTextLinesAsync(linesToMask);
+                if (masked.Count == 0) return;
+
+                int idx = 0;
+                var maskedSummary = new SummaryResult
+                {
+                    Overview = masked[idx++],
+                    KeyPoints = original.KeyPoints
+                        .Select(kp => idx < masked.Count ? masked[idx++] : kp)
+                        .ToList(),
+                    ActionItems = original.ActionItems
+                        .Select(ai => idx < masked.Count ? masked[idx++] : ai)
+                        .ToList()
+                };
+
+                Summary.Summary = maskedSummary;
+            }
+            else if (_summaryBeforeMasking is not null)
+            {
+                Summary.Summary = CloneSummary(_summaryBeforeMasking);
+                _summaryBeforeMasking = null;
+            }
         }
         finally
         {
             _summarySyncLock.Release();
         }
+    }
+
+    private static SummaryResult CloneSummary(SummaryResult source)
+    {
+        return new SummaryResult
+        {
+            Overview = source.Overview,
+            KeyPoints = source.KeyPoints.ToList(),
+            ActionItems = source.ActionItems.ToList()
+        };
     }
 }
