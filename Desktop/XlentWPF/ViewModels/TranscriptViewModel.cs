@@ -1,0 +1,211 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
+using System.IO;
+using XlentWPF.Models;
+using XlentWPF.Services.Interfaces;
+
+namespace XlentWPF.ViewModels;
+
+public partial class TranscriptViewModel : ObservableObject
+{
+    private readonly ITranscriptionService _transcriptionService;
+    private string _detectedLanguage = "sv";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(HasPartialText))]
+    private string _partialText = string.Empty;
+
+    [ObservableProperty] private int    _wordCount      = 0;
+    [ObservableProperty] private bool   _isUploading    = false;
+    [ObservableProperty] private double _uploadProgress = 0;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PiiButtonLabel))]
+    private bool _isHidingPii = false;
+
+    [ObservableProperty] private PiiSettings _piiSettings = new();
+
+    public bool   ShowEmptyState  => !IsUploading && Segments.Count == 0;
+    public bool   HasPartialText  => !string.IsNullOrEmpty(PartialText);
+    public string PiiButtonLabel  => IsHidingPii ? "Show personal info" : "Hide personal info";
+
+    public ObservableCollection<TranscriptSegment> Segments { get; } = [];
+
+    public TranscriptViewModel(ITranscriptionService transcriptionService)
+    {
+        _transcriptionService = transcriptionService;
+        _transcriptionService.SegmentRecognised += OnSegmentRecognised;
+        _transcriptionService.PartialResultReceived += text =>
+            App.Current.Dispatcher.Invoke(() => PartialText = text);
+        Segments.CollectionChanged += (_, e) =>
+        {
+            // Unsubscribe removed segments to prevent memory leak
+            if (e.OldItems != null)
+                foreach (TranscriptSegment s in e.OldItems)
+                    s.PropertyChanged -= OnSegmentSpeakerNameChanged;
+
+            OnPropertyChanged(nameof(ShowEmptyState));
+        };
+    }
+
+    private void OnSegmentRecognised(TranscriptSegment segment)
+    {
+        App.Current.Dispatcher.Invoke(() =>
+        {
+            PartialText = string.Empty;
+            AddSegment(segment);
+        });
+    }
+
+    public void AddSegment(TranscriptSegment segment)
+    {
+        segment.PropertyChanged += OnSegmentSpeakerNameChanged;
+        Segments.Add(segment);
+        WordCount += segment.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+    }
+
+    private void OnSegmentSpeakerNameChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TranscriptSegment.SpeakerName)) return;
+        if (sender is not TranscriptSegment changed) return;
+
+        foreach (var s in Segments)
+        {
+            if (s.SpeakerIndex == changed.SpeakerIndex && s != changed)
+                s.SpeakerName = changed.SpeakerName;
+        }
+    }
+
+    public async Task StartLiveTranscriptionAsync(string? language = null)
+    {
+        _detectedLanguage = language?.StartsWith("sv", StringComparison.OrdinalIgnoreCase) == true
+            ? "sv" : "en";
+
+        Segments.Clear();
+        WordCount = 0;
+
+        try
+        {
+            await _transcriptionService.StartLiveAsync(language);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TranscriptViewModel] Could not start live transcription: {ex.Message}");
+            App.Current.Dispatcher.Invoke(() =>
+                System.Windows.MessageBox.Show(
+                    $"Could not connect to the transcription service.\n\nMake sure the API is running on http://localhost:5239\n\nDetail: {ex.Message}",
+                    "Connection Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning));
+        }
+    }
+
+    public async Task StopLiveTranscriptionAsync()
+    {
+        await _transcriptionService.StopLiveAsync();
+    }
+
+    public async Task TranscribeFileAsync(string filePath, int expectedSpeakers = 2)
+    {
+        IsUploading = true;
+        UploadProgress = 0;
+        Segments.Clear();
+        WordCount = 0;
+
+        try
+        {
+            var progress = new Progress<int>(v => UploadProgress = v);
+            var result = await _transcriptionService.TranscribeFileAsync(
+                filePath, expectedSpeakers, progress);
+            foreach (var seg in result) AddSegment(seg);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"Transcription failed.\n\nDetail: {ex.Message}",
+                "Upload Error",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
+        finally
+        {
+            IsUploading = false;
+            UploadProgress = 0;
+        }
+    }
+
+    [RelayCommand]
+    private void Clear()
+    {
+        Segments.Clear();
+        WordCount = 0;
+        PartialText  = string.Empty;
+        IsHidingPii  = false;
+    }
+
+    [RelayCommand]
+    private void Download()
+    {
+        if (Segments.Count == 0) return;
+
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = "transcript",
+            DefaultExt = ".txt",
+            Filter = "Text files|*.txt|All files|*.*"
+        };
+        if (dlg.ShowDialog() != true) return;
+
+        var lines = Segments.Select(s => $"[{s.Timestamp}] {s.SpeakerName}: {s.Text}");
+        File.WriteAllLines(dlg.FileName, lines);
+    }
+
+    [RelayCommand]
+    private async Task ToggleHidePII()
+    {
+        if (Segments.Count == 0) return;
+
+        if (!IsHidingPii)
+        {
+            try
+            {
+                var redacted = await _transcriptionService.RedactAsync(
+                    Segments.ToList(), _detectedLanguage, PiiSettings);
+
+                for (int i = 0; i < Segments.Count && i < redacted.Count; i++)
+                {
+                    Segments[i].OriginalText = Segments[i].Text;
+                    Segments[i].Text = redacted[i].Text;
+                }
+                IsHidingPii = true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[PII] Redaction failed: {ex.Message}");
+            }
+        }
+        else
+        {
+            foreach (var s in Segments)
+            {
+                if (s.OriginalText is not null)
+                {
+                    s.Text = s.OriginalText;
+                    s.OriginalText = null;
+                }
+            }
+            IsHidingPii = false;
+        }
+    }
+
+    [RelayCommand]
+    private void CopyToClipboard()
+    {
+        if (Segments.Count == 0) return;
+        var text = string.Join(Environment.NewLine,
+            Segments.Select(s => $"[{s.Timestamp}] {s.SpeakerName}: {s.Text}"));
+        System.Windows.Clipboard.SetText(text);
+    }
+}

@@ -1,80 +1,68 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Net.Http;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Windows.Input;
-using XlentApi.Services;
 
 namespace XlentWPF.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
-    [ObservableProperty]
-    private string outputText;
+    public RecordingViewModel Recording { get; }
+    public TranscriptViewModel Transcript { get; }
+    public SummaryViewModel Summary { get; }
+
+    public MainViewModel(
+        RecordingViewModel recording,
+        TranscriptViewModel transcript,
+        SummaryViewModel summary)
+    {
+        Recording = recording;
+        Transcript = transcript;
+        Summary = summary;
+
+        // Func<Task> events — properly awaited, exceptions surface correctly
+        // Language is null here: the API uses AutoDetectSourceLanguageConfig and
+        // picks Swedish vs English per utterance automatically — no client-side guessing.
+        Recording.RecordingStarted += async () =>
+        {
+            await Transcript.StartLiveTranscriptionAsync(language: null);
+        };
+
+        Recording.RecordingStopped += async () =>
+        {
+            await Transcript.StopLiveTranscriptionAsync();
+        };
+    }
 
     [RelayCommand]
-    private async Task CallApi()
+    private async Task Summarize()
     {
-        using var client = new HttpClient();
-        var response = await client.GetStringAsync("https://localhost:7200/api/Test");
+        if (Transcript.Segments.Count == 0)
+            return;
 
-        var json = JsonDocument.Parse(response);
-        OutputText = json.RootElement.GetProperty("message").GetString();
+        var lines = Transcript.Segments
+            .Select(s => $"{s.SpeakerName}: {s.Text}")
+            .ToList();
+
+        var allText = string.Concat(Transcript.Segments.Select(s => s.Text));
+        var language = DetectLanguage(allText);
+
+        await Summary.SummarizeAsync(lines, language);
     }
 
-    private object _currentView;
-    private object _currentInputViewModel;
-    private string _transcriptionResult;
-
-
-    public object CurrentView
+    [RelayCommand]
+    private async Task UploadFile()
     {
-        get => _currentView;
-        set => SetProperty(ref _currentView, value);
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Select audio file",
+            Filter = "Audio files|*.wav;*.mp3;*.ogg;*.m4a|All files|*.*"
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        await Transcript.TranscribeFileAsync(dlg.FileName);
     }
 
-    public object CurrentInputViewModel
-    {
-        get => _currentInputViewModel;
-        set => SetProperty(ref _currentInputViewModel, value);
-    }
-
-    public string TranscriptionResult
-    {
-        get => _transcriptionResult;
-        set => SetProperty(ref _transcriptionResult, value);
-
-    }
-
-    public RecordViewModel RecordVM { get; }
-
-    public UploadViewModel UploadVM { get; }
-
-    public ICommand ShowRecordCommand { get; }
-    public ICommand ShowUploadCommand { get; }
-
-    public MainViewModel(ISpeechService speechService)
-    {
-        RecordVM = new RecordViewModel(speechService, OnTranscriptionCompleted);
-        UploadVM = new UploadViewModel(speechService, OnTranscriptionCompleted);
-
-        ShowRecordCommand = new RelayCommand(() =>
-            CurrentInputViewModel = RecordVM);
-
-        ShowUploadCommand = new RelayCommand(() =>
-            CurrentInputViewModel = UploadVM);
-
-        CurrentInputViewModel = RecordVM;
-    }
-
-    private void OnTranscriptionCompleted(string result)
-    {
-        TranscriptionResult = result;
-        OnPropertyChanged(nameof(TranscriptionResult));
-    }
-
+    // Auto-detect language by looking for Swedish-specific characters
+    private static string DetectLanguage(string text) =>
+        text.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö') ? "sv-SE" : "en-US";
 }
-
-
-
