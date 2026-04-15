@@ -83,7 +83,7 @@
                                 Content="{Binding Transcript.PiiActionLabel}"
                                 IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
                                 Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PanelBtn}"
+                                Style="{StaticResource PiiStateBtn}"
                                 HorizontalAlignment="Stretch"/>
 
                         <Button Grid.Column="8" x:Name="PiiSettingsBtn" Content="⚙"

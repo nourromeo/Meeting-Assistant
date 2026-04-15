@@ -99,6 +99,20 @@
         <Setter Property="FontWeight"  Value="Normal"/>
     </Style>
 
+    <!-- ── PII action button (off=red, on=green) ── -->
+    <Style x:Key="PiiStateBtn" TargetType="Button" BasedOn="{StaticResource PanelBtn}">
+        <Setter Property="Background"  Value="{StaticResource WarnTintBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource WarnBorderBrush}"/>
+        <Setter Property="Foreground"  Value="{StaticResource WarnBrush}"/>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Transcript.IsHidingPii}" Value="True">
+                <Setter Property="Background"  Value="{StaticResource AccentTintBrush}"/>
+                <Setter Property="BorderBrush" Value="{StaticResource AccentBorderBrush}"/>
+                <Setter Property="Foreground"  Value="{StaticResource AccentBrush}"/>
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- ── Mode tab (ToggleButton) ── -->
     <Style x:Key="TabBtn" TargetType="ToggleButton">
         <Setter Property="Padding"         Value="14,7"/>
