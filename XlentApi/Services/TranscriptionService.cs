@@ -204,9 +204,16 @@ namespace XlentApi.Services
 
         private SpeechConfig BuildSessionConfig()
         {
-            var c = SpeechConfig.FromSubscription(
-                _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Key),
-                _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Region));
+            //var c = SpeechConfig.FromSubscription(
+            //    _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Key),
+            //    _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Region));
+
+            var region = _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Region);
+            var key = _speechConfig.GetProperty(PropertyId.SpeechServiceConnection_Key);
+
+            // Use the v2 universal endpoint required for Continuous LID 
+            var v2Endpoint = new Uri($"wss://{region}.stt.speech.microsoft.com/speech/universal/v2");
+            var c = SpeechConfig.FromEndpoint(v2Endpoint, key);
 
             // Return raw text — profanity filter masks words and looks like missing words
             c.SetProperty(PropertyId.SpeechServiceResponse_ProfanityOption, "Raw");
