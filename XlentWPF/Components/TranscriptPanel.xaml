@@ -8,8 +8,6 @@
                 <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <conv:BoolToVisibilityConverter               x:Key="BoolVis"/>
-            <conv:InverseBoolToVisibilityConverter        x:Key="InvBoolVis"/>
-            <conv:EmptyStringToVisibilityConverter        x:Key="EmptyStrVis"/>
             <conv:SpeakerIndexToBrushConverter            x:Key="SpeakerFg"/>
             <conv:SpeakerIndexToBackgroundConverter       x:Key="SpeakerBg"/>
         </ResourceDictionary>

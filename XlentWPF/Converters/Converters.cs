@@ -14,15 +14,6 @@ public class BoolToVisibilityConverter : IValueConverter
         => value is Visibility.Visible;
 }
 
-/// <summary>true → Collapsed, false → Visible</summary>
-public class InverseBoolToVisibilityConverter : IValueConverter
-{
-    public object Convert(object value, Type t, object p, CultureInfo c)
-        => value is true ? Visibility.Collapsed : Visibility.Visible;
-    public object ConvertBack(object value, Type t, object p, CultureInfo c)
-        => value is Visibility.Collapsed;
-}
-
 /// <summary>null → Collapsed, non-null → Visible</summary>
 public class NullToVisibilityConverter : IValueConverter
 {
@@ -56,15 +47,6 @@ public class SpeakerIndexToBrushConverter : IValueConverter
         int idx = value is int i ? (i - 1) : 0;
         return _brushes[idx % _brushes.Length];
     }
-    public object ConvertBack(object value, Type t, object p, CultureInfo c)
-        => throw new NotImplementedException();
-}
-
-/// <summary>empty/whitespace string → Collapsed, non-empty → Visible</summary>
-public class EmptyStringToVisibilityConverter : IValueConverter
-{
-    public object Convert(object value, Type t, object p, CultureInfo c)
-        => value is string s && !string.IsNullOrEmpty(s) ? Visibility.Visible : Visibility.Collapsed;
     public object ConvertBack(object value, Type t, object p, CultureInfo c)
         => throw new NotImplementedException();
 }
