@@ -68,9 +68,7 @@
                             <ColumnDefinition Width="8"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="72"/>
-                            <ColumnDefinition Width="6"/>
-                            <ColumnDefinition Width="56"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="6"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
@@ -80,19 +78,14 @@
                         <Button Grid.Column="2" Content="Copy" Style="{StaticResource PanelBtn}"
                                 Command="{Binding Transcript.CopyToClipboardCommand}"/>
 
-                        <TextBlock Grid.Column="4" Text="{Binding Transcript.PiiStatusLabel}"
-                                   Foreground="{StaticResource MutedBrush}"
-                                   FontSize="11"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"/>
-                        <Button Grid.Column="6" x:Name="PiiToggle"
-                                Content="{Binding Transcript.PiiActionLabel}"
+                        <ToggleButton Grid.Column="4" x:Name="PiiToggle"
+                                Content="{Binding Transcript.PiiButtonLabel}"
+                                IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
                                 IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
                                 Command="{Binding Transcript.ToggleHidePIICommand}"
-                                Style="{StaticResource PiiStateBtn}"
-                                HorizontalAlignment="Stretch"/>
+                                Style="{StaticResource PiiToggleBtn}"/>
 
-                        <Button Grid.Column="8" x:Name="PiiSettingsBtn" Content="⚙"
+                        <Button Grid.Column="6" x:Name="PiiSettingsBtn" Content="⚙"
                                 Style="{StaticResource PanelBtn}"
                                 Click="PiiSettingsBtn_Click"
                                 ToolTip="PII Redaction Settings"/>
