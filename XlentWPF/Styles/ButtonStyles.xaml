@@ -121,12 +121,10 @@
                             Padding="{TemplateBinding Padding}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-                            <!-- Pill track -->
                             <Border x:Name="Track"
                                     Width="28" Height="15" CornerRadius="8"
                                     Background="#28FFFFFF" Margin="0,0,8,0"
                                     VerticalAlignment="Center">
-                                <!-- Dot slides left (off) or right (on) -->
                                 <Ellipse x:Name="Dot"
                                          Width="10" Height="10"
                                          Fill="#5A6080"
@@ -139,7 +137,6 @@
                         </StackPanel>
                     </Border>
                     <ControlTemplate.Triggers>
-                        <!-- ON state -->
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Track"  Property="Background"         Value="#3300E5A0"/>
                             <Setter TargetName="Dot"    Property="Fill"               Value="#00E5A0"/>

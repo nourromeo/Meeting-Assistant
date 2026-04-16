@@ -8,8 +8,6 @@
                 <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <conv:BoolToVisibilityConverter               x:Key="BoolVis"/>
-            <conv:InverseBoolToVisibilityConverter        x:Key="InvBoolVis"/>
-            <conv:EmptyStringToVisibilityConverter        x:Key="EmptyStrVis"/>
             <conv:SpeakerIndexToBrushConverter            x:Key="SpeakerFg"/>
             <conv:SpeakerIndexToBackgroundConverter       x:Key="SpeakerBg"/>
         </ResourceDictionary>
@@ -30,16 +28,27 @@
                     BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
                     CornerRadius="16,16,0,0" Padding="16,12">
                 <Grid>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="22" Height="22" CornerRadius="6"
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0" VerticalAlignment="Center" ClipToBounds="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="22" Height="22" CornerRadius="6"
                                 Background="#1A4F8EFF" Margin="0,0,8,0">
                             <TextBlock Text="📝" FontSize="11"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <!-- Heading reflects the current mode -->
-                        <TextBlock Foreground="{StaticResource TextBrush}"
+                        <TextBlock Grid.Column="1"
+                                   Foreground="{StaticResource TextBrush}"
                                    FontFamily="Segoe UI" FontWeight="Bold"
-                                   FontSize="12" VerticalAlignment="Center">
+                                   FontSize="12" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Text" Value="LIVE TRANSCRIPTION"/>
@@ -51,19 +60,33 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Clear" Style="{StaticResource PanelBtn}"
-                                Command="{Binding Transcript.ClearCommand}" Margin="0,0,6,0"/>
-                        <Button Content="Copy"  Style="{StaticResource PanelBtn}"
-                                Command="{Binding Transcript.CopyToClipboardCommand}" Margin="0,0,6,0"/>
-                        <ToggleButton x:Name="PiiToggle"
+                    </Grid>
+
+                    <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="172"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0" Content="Clear" Style="{StaticResource PanelBtn}"
+                                Command="{Binding Transcript.ClearCommand}"/>
+                        <Button Grid.Column="2" Content="Copy" Style="{StaticResource PanelBtn}"
+                                Command="{Binding Transcript.CopyToClipboardCommand}"/>
+
+                        <ToggleButton Grid.Column="4" x:Name="PiiToggle"
                                 Content="{Binding Transcript.PiiButtonLabel}"
                                 IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
+                                IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
                                 Command="{Binding Transcript.ToggleHidePIICommand}"
                                 Style="{StaticResource PiiToggleBtn}"
-                                Margin="0,0,4,0"/>
-                        <Button x:Name="PiiSettingsBtn" Content="⚙"
+                                HorizontalAlignment="Stretch"/>
+
+                        <Button Grid.Column="6" x:Name="PiiSettingsBtn" Content="⚙"
                                 Style="{StaticResource PanelBtn}"
                                 Click="PiiSettingsBtn_Click"
                                 ToolTip="PII Redaction Settings"/>
@@ -111,7 +134,7 @@
                                 </StackPanel>
                             </Border>
                         </Popup>
-                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
