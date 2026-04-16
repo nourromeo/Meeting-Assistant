@@ -62,7 +62,7 @@ namespace XlentApi.Services
                 index++;
             }
 
-            // Process in chunks of 100 to respect Azure Cognitive Services API payload limits
+            // Process in chunks of 5 to respect Azure Cognitive Services API payload limits
             var chunkedBatches = batchDocuments.Chunk(5);
 
             foreach (var batch in chunkedBatches)
