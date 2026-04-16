@@ -12,7 +12,7 @@ public partial class TranscriptViewModel : ObservableObject
 {
     private readonly ITranscriptionService _transcriptionService;
     private readonly SemaphoreSlim _piiOperationLock = new(1, 1);
-    private string _detectedLanguage = "sv";
+    private string? _detectedLanguage;
     private bool _isTogglingPii;
 
     [ObservableProperty]
@@ -102,8 +102,9 @@ public partial class TranscriptViewModel : ObservableObject
         try
         {
             var current = Segments.ToList();
+            var language = ResolveRedactionLanguage(current.Select(s => s.Text));
             var redacted = await _transcriptionService.RedactAsync(
-                current, _detectedLanguage, PiiSettings);
+                current, language, PiiSettings);
 
             var lines = new List<string>(current.Count);
             for (int i = 0; i < current.Count; i++)
@@ -134,6 +135,7 @@ public partial class TranscriptViewModel : ObservableObject
         await _piiOperationLock.WaitAsync();
         try
         {
+            var language = ResolveRedactionLanguage(lines);
             var textSegments = lines.Select(t => new TranscriptSegment
             {
                 SpeakerName = "Summary",
@@ -143,7 +145,7 @@ public partial class TranscriptViewModel : ObservableObject
             }).ToList();
 
             var redacted = await _transcriptionService.RedactAsync(
-                textSegments, _detectedLanguage, PiiSettings);
+                textSegments, language, PiiSettings);
 
             return redacted.Select(s => s.Text).ToList();
         }
@@ -172,8 +174,10 @@ public partial class TranscriptViewModel : ObservableObject
 
     public async Task StartLiveTranscriptionAsync(string? language = null)
     {
-        _detectedLanguage = language?.StartsWith("sv", StringComparison.OrdinalIgnoreCase) == true
-            ? "sv" : "en";
+        _detectedLanguage =
+            language?.StartsWith("sv", StringComparison.OrdinalIgnoreCase) == true ? "sv" :
+            language?.StartsWith("en", StringComparison.OrdinalIgnoreCase) == true ? "en" :
+            null;
 
         Segments.Clear();
         WordCount = 0;
@@ -201,6 +205,7 @@ public partial class TranscriptViewModel : ObservableObject
 
     public async Task TranscribeFileAsync(string filePath, int expectedSpeakers = 2)
     {
+        _detectedLanguage = null;
         IsUploading = true;
         UploadProgress = 0;
         Segments.Clear();
@@ -268,8 +273,9 @@ public partial class TranscriptViewModel : ObservableObject
             {
                 try
                 {
+                    var language = ResolveRedactionLanguage(Segments.Select(s => s.Text));
                     var redacted = await _transcriptionService.RedactAsync(
-                        Segments.ToList(), _detectedLanguage, PiiSettings);
+                        Segments.ToList(), language, PiiSettings);
 
                     for (int i = 0; i < Segments.Count && i < redacted.Count; i++)
                     {
@@ -312,11 +318,12 @@ public partial class TranscriptViewModel : ObservableObject
         try
         {
             if (!IsHidingPii) return;
+            var language = ResolveRedactionLanguage(new[] { segment.Text });
 
             segment.OriginalText ??= segment.Text;
 
             var redacted = await _transcriptionService.RedactAsync(
-                new[] { segment }, _detectedLanguage, PiiSettings);
+                new[] { segment }, language, PiiSettings);
 
             if (IsHidingPii && redacted.Count > 0)
             {
@@ -331,6 +338,18 @@ public partial class TranscriptViewModel : ObservableObject
         {
             _piiOperationLock.Release();
         }
+    }
+
+    private string ResolveRedactionLanguage(IEnumerable<string> texts)
+    {
+        if (!string.IsNullOrWhiteSpace(_detectedLanguage))
+            return _detectedLanguage!;
+
+        var joined = string.Join(" ", texts.Where(t => !string.IsNullOrWhiteSpace(t)).Take(40));
+        if (string.IsNullOrWhiteSpace(joined))
+            return "sv";
+
+        return joined.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö') ? "sv" : "en";
     }
 
     [RelayCommand]

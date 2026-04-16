@@ -215,6 +215,10 @@ namespace XlentApi.Services
             var v2Endpoint = new Uri($"wss://{region}.stt.speech.microsoft.com/speech/universal/v2");
             var c = SpeechConfig.FromEndpoint(v2Endpoint, key);
 
+            // Ensure live transcription can keep identifying language during the session
+            // when AutoDetectSourceLanguageConfig is used (sv-SE/en-US switching).
+            c.SetProperty(PropertyId.SpeechServiceConnection_LanguageIdMode, "Continuous");
+
             // Return raw text — profanity filter masks words and looks like missing words
             c.SetProperty(PropertyId.SpeechServiceResponse_ProfanityOption, "Raw");
 
