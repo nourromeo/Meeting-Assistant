@@ -1,0 +1,246 @@
+<UserControl x:Class="XlentWPF.Components.TranscriptPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:XlentWPF.Converters">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Styles/AppStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <conv:BoolToVisibilityConverter               x:Key="BoolVis"/>
+            <conv:SpeakerIndexToBrushConverter            x:Key="SpeakerFg"/>
+            <conv:SpeakerIndexToBackgroundConverter       x:Key="SpeakerBg"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Border Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+            CornerRadius="16">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Panel header -->
+            <Border Grid.Row="0"
+                    Background="{StaticResource Surface2Brush}"
+                    BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1"
+                    CornerRadius="16,16,0,0" Padding="16,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Grid.Column="0" VerticalAlignment="Center" ClipToBounds="True">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Width="22" Height="22" CornerRadius="6"
+                                Background="#1A4F8EFF" Margin="0,0,8,0">
+                            <TextBlock Text="📝" FontSize="11"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <!-- Heading reflects the current mode -->
+                        <TextBlock Grid.Column="1"
+                                   Foreground="{StaticResource TextBrush}"
+                                   FontFamily="Segoe UI" FontWeight="Bold"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="LIVE TRANSCRIPTION"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Recording.IsUploadMode}" Value="True">
+                                            <Setter Property="Text" Value="TRANSCRIPTION"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="172"/>
+                            <ColumnDefinition Width="6"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0" Content="Clear" Style="{StaticResource PanelBtn}"
+                                Command="{Binding Transcript.ClearCommand}"/>
+                        <Button Grid.Column="2" Content="Copy" Style="{StaticResource PanelBtn}"
+                                Command="{Binding Transcript.CopyToClipboardCommand}"/>
+
+                        <ToggleButton Grid.Column="4" x:Name="PiiToggle"
+                                Content="{Binding Transcript.PiiButtonLabel}"
+                                IsChecked="{Binding Transcript.IsHidingPii, Mode=OneWay}"
+                                IsEnabled="{Binding Transcript.IsPiiToggleEnabled}"
+                                Command="{Binding Transcript.ToggleHidePIICommand}"
+                                Style="{StaticResource PiiToggleBtn}"
+                                HorizontalAlignment="Stretch"/>
+
+                        <Button Grid.Column="6" x:Name="PiiSettingsBtn" Content="⚙"
+                                Style="{StaticResource PanelBtn}"
+                                Click="PiiSettingsBtn_Click"
+                                ToolTip="PII Redaction Settings"/>
+                        <Popup x:Name="PiiSettingsPopup"
+                               PlacementTarget="{Binding ElementName=PiiSettingsBtn}"
+                               Placement="Top"
+                               StaysOpen="False"
+                               AllowsTransparency="True">
+                            <Border Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="12"
+                                    Margin="4">
+                                <StackPanel Width="180">
+                                    <TextBlock Text="PII Redaction"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="12"
+                                               Margin="0,0,0,10"/>
+                                    <CheckBox Content="Personnummer"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactPersonnummer}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Names"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactNames}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Emails"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactEmails}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Phone numbers"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactPhoneNumbers}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Addresses"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactAddress}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                    <CheckBox Content="Organizations"
+                                              IsChecked="{Binding Transcript.PiiSettings.RedactOrganizations}"
+                                              Foreground="{StaticResource TextBrush}"
+                                              Margin="0,0,0,6"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <!-- Body — named so the code-behind can auto-scroll it -->
+            <ScrollViewer x:Name="TranscriptScroll"
+                          Grid.Row="1" Style="{StaticResource SlimScrollViewer}" Padding="16">
+                <StackPanel  Margin="20,20,20,20">
+
+                    <!-- Uploading spinner -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
+                                Visibility="{Binding Transcript.IsUploading, Converter={StaticResource BoolVis}}">
+                        <TextBlock Text="⟳" FontSize="32" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Opacity="0.7" Margin="0,0,0,10"
+                                   RenderTransformOrigin="0.5,0.5">
+                            <TextBlock.RenderTransform>
+                                <RotateTransform x:Name="UploadSpinnerRotate"/>
+                            </TextBlock.RenderTransform>
+                            <TextBlock.Triggers>
+                                <EventTrigger RoutedEvent="Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever">
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="UploadSpinnerRotate"
+                                                Storyboard.TargetProperty="Angle"
+                                                From="0" To="360" Duration="0:0:1"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </TextBlock.Triggers>
+                        </TextBlock>
+                        <TextBlock Text="Transcribing audio…"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   FontSize="12" TextAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Empty state (not uploading AND no segments) -->
+                    <StackPanel HorizontalAlignment="Center" Margin="0,80,0,0"
+                                Visibility="{Binding Transcript.ShowEmptyState, Converter={StaticResource BoolVis}}">
+                        <TextBlock Text="🎙" FontSize="32" Opacity="0.4"
+                                   HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="Press Record to start live transcription"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   FontSize="12" TextAlignment="Center"/>
+                        <TextBlock Text="or switch to Upload Audio mode"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   FontSize="12" TextAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Transcript segments -->
+                    <ItemsControl ItemsSource="{Binding Transcript.Segments}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,0,0,12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <!-- Speaker tag (colored background) + timestamp -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                            <Border CornerRadius="10" Padding="7,2"
+                                                    Background="{Binding SpeakerIndex, Converter={StaticResource SpeakerBg}}">
+                                                <TextBox Text="{Binding SpeakerName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                         Background="Transparent"
+                                                         Foreground="{Binding SpeakerIndex, Converter={StaticResource SpeakerFg}}"
+                                                         Width="80"
+                                                         BorderThickness="0"
+                                                         FontSize="10" FontWeight="Medium"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding Timestamp}"
+                                                       Foreground="{StaticResource MutedBrush}"
+                                                       FontSize="10" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <!-- Segment text -->
+                                        <TextBlock Text="{Binding Text}"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="13" TextWrapping="Wrap"
+                                                   LineHeight="22"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Partial (live typing) preview — shown while Azure is still recognizing -->
+                    <Border Padding="0,4,0,8"
+                            Visibility="{Binding Transcript.HasPartialText, Converter={StaticResource BoolVis}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="✎ " FontSize="11"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       VerticalAlignment="Top" Margin="0,2,4,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Transcript.PartialText}"
+                                       Foreground="{StaticResource MutedBrush}"
+                                       FontSize="13" FontStyle="Italic"
+                                       TextWrapping="Wrap"
+                                       Opacity="0.75"/>
+                        </Grid>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
