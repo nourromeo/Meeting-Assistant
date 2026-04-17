@@ -26,6 +26,12 @@ namespace XlentApi.Services
             @"(?<!\w)(?:(?:\+|00)\s?46|0)[\s-]?(?:\(?\d{1,3}\)?[\s-]?)?(?:\d[\s.-]?){5,8}\d(?!\w)",
             RegexOptions.Compiled, RegexTimeout);
 
+        // Deterministic fallback for common self-identification phrases.
+        // This helps when cloud PII name detection misses names in noisy/live text.
+        private static readonly Regex NamePhraseRegex = new Regex(
+            @"\b(?<prefix>jag heter|mitt namn är|namnet är|my name is|this is)\s+(?<name>[a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ'\-]{1,})(?:\s+(?<name2>[a-zA-ZåäöÅÄÖ][a-zA-ZåäöÅÄÖ'\-]{1,}))?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase, RegexTimeout);
+
         public PiiService(TextAnalyticsClient textAnalyticsClient, ILogger<PiiService> logger)
         {
             _textAnalyticsClient = textAnalyticsClient;
@@ -143,6 +149,7 @@ namespace XlentApi.Services
 
                 if (piiSettings.RedactEmails) text = EmailRegex.Replace(text, "[E-post]");
                 if (piiSettings.RedactPhoneNumbers) text = PhoneRegex.Replace(text, "[Telefonnummer]");
+                if (piiSettings.RedactNames) text = ApplyNamePhraseRedaction(text);
 
             }
             catch (RegexMatchTimeoutException ex)
@@ -151,6 +158,16 @@ namespace XlentApi.Services
             }
 
             return text;
+        }
+
+        private static string ApplyNamePhraseRedaction(string text)
+        {
+            return NamePhraseRegex.Replace(text, m =>
+            {
+                var prefix = m.Groups["prefix"].Value;
+                var hasSecondName = m.Groups["name2"].Success && !string.IsNullOrWhiteSpace(m.Groups["name2"].Value);
+                return hasSecondName ? $"{prefix} [Person] [Person]" : $"{prefix} [Person]";
+            });
         }
 
         private string ApplyEntityMasking(string originalText, PiiEntityCollection entities)

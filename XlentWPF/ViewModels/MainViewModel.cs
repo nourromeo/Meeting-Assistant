@@ -49,7 +49,7 @@ public partial class MainViewModel : ObservableObject
         if (lines.Count == 0) return;
 
         var allText = string.Concat(lines);
-        var language = DetectLanguage(allText);
+        var language = LanguageDetection.DetectSummaryLanguage(allText);
 
         await Summary.SummarizeAsync(lines, language);
     }
@@ -67,10 +67,6 @@ public partial class MainViewModel : ObservableObject
 
         await Transcript.TranscribeFileAsync(dlg.FileName);
     }
-
-    // Auto-detect language by looking for Swedish-specific characters
-    private static string DetectLanguage(string text) =>
-        text.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö') ? "sv-SE" : "en-US";
 
     private void OnTranscriptPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

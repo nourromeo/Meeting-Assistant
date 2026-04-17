@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading;
+using Microsoft.Extensions.Configuration;
 using XlentWPF.Models;
 using XlentWPF.Services.Interfaces;
 
@@ -11,6 +12,7 @@ namespace XlentWPF.ViewModels;
 public partial class TranscriptViewModel : ObservableObject
 {
     private readonly ITranscriptionService _transcriptionService;
+    private readonly string _apiBaseUrl;
     private readonly SemaphoreSlim _piiOperationLock = new(1, 1);
     private string? _detectedLanguage;
     private bool _isTogglingPii;
@@ -52,9 +54,10 @@ public partial class TranscriptViewModel : ObservableObject
 
     public ObservableCollection<TranscriptSegment> Segments { get; } = [];
 
-    public TranscriptViewModel(ITranscriptionService transcriptionService)
+    public TranscriptViewModel(ITranscriptionService transcriptionService, IConfiguration configuration)
     {
         _transcriptionService = transcriptionService;
+        _apiBaseUrl = (configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5239/").TrimEnd('/');
         _transcriptionService.SegmentRecognised += OnSegmentRecognised;
         _transcriptionService.PartialResultReceived += text =>
             App.Current.Dispatcher.Invoke(() => PartialText = text);
@@ -191,7 +194,7 @@ public partial class TranscriptViewModel : ObservableObject
             System.Diagnostics.Debug.WriteLine($"[TranscriptViewModel] Could not start live transcription: {ex.Message}");
             App.Current.Dispatcher.Invoke(() =>
                 System.Windows.MessageBox.Show(
-                    $"Could not connect to the transcription service.\n\nMake sure the API is running on http://localhost:5239\n\nDetail: {ex.Message}",
+                    $"Could not connect to the transcription service.\n\nMake sure the API is running on {_apiBaseUrl}\n\nDetail: {ex.Message}",
                     "Connection Error",
                     System.Windows.MessageBoxButton.OK,
                     System.Windows.MessageBoxImage.Warning));
@@ -345,11 +348,7 @@ public partial class TranscriptViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(_detectedLanguage))
             return _detectedLanguage!;
 
-        var joined = string.Join(" ", texts.Where(t => !string.IsNullOrWhiteSpace(t)).Take(40));
-        if (string.IsNullOrWhiteSpace(joined))
-            return "sv";
-
-        return joined.Any(c => c is 'å' or 'ä' or 'ö' or 'Å' or 'Ä' or 'Ö') ? "sv" : "en";
+        return LanguageDetection.DetectRedactionLanguage(texts);
     }
 
     [RelayCommand]
