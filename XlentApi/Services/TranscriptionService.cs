@@ -16,17 +16,18 @@ namespace XlentApi.Services
 
         private sealed record LiveSession(
             PushAudioInputStream PushStream,
+            AudioConfig AudioConfig,
             ConversationTranscriber Transcriber,
             CancellationTokenSource Cts);
 
-        
+
         private readonly ConcurrentDictionary<string, TranscriptionJob> _jobs = new();
         private static readonly TimeSpan JobTtl = TimeSpan.FromMinutes(30);
 
-      
+
         private readonly ConcurrentDictionary<string, LiveSession> _sessions = new();
 
-    
+
         private static readonly string[] RecognitionLanguages = ["sv-SE", "en-US"];
 
 
@@ -119,7 +120,13 @@ namespace XlentApi.Services
             // 16 kHz, 16-bit, mono — must match what the WPF AudioService captures
             var audioFormat = AudioStreamFormat.GetWaveFormatPCM(16_000, 16, 1);
             var pushStream = AudioInputStream.CreatePushStream(audioFormat);
-            var audioConfig = AudioConfig.FromStreamInput(pushStream);
+
+            var processingOptions = AudioProcessingOptions.Create(
+                AudioProcessingConstants.AUDIO_INPUT_PROCESSING_ENABLE_DEFAULT |
+                AudioProcessingConstants.AUDIO_INPUT_PROCESSING_DISABLE_ECHO_CANCELLATION,
+                PresetMicrophoneArrayGeometry.Mono);
+
+            var audioConfig = AudioConfig.FromStreamInput(pushStream, processingOptions);
 
             ConversationTranscriber transcriber;
 
@@ -175,7 +182,7 @@ namespace XlentApi.Services
             };
 
             var cts = new CancellationTokenSource();
-            _sessions[sessionId] = new LiveSession(pushStream, transcriber, cts);
+            _sessions[sessionId] = new LiveSession(pushStream,audioConfig, transcriber, cts);
 
             await transcriber.StartTranscribingAsync();
         }
@@ -192,9 +199,10 @@ namespace XlentApi.Services
         {
             if (!_sessions.TryRemove(sessionId, out var session)) return;
 
-            session.PushStream.Close();
             await session.Transcriber.StopTranscribingAsync();
             session.Transcriber.Dispose();
+            session.AudioConfig.Dispose();
+            session.PushStream.Dispose();
             session.Cts.Dispose();
         }
 
@@ -232,7 +240,9 @@ namespace XlentApi.Services
             // Silence after which the current utterance is finalized and a new one begins.
             // 1200ms (up from 800ms) allows Azure a broader context window to analyze the full sentence 
             // before segmenting, significantly improving spelling and punctuation accuracy.
-            c.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "1200");
+            //c.SetProperty(PropertyId.Speech_SegmentationSilenceTimeoutMs, "1200");
+            c.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
+
 
             // Keep the session alive through long pauses between speakers
             c.SetProperty(
