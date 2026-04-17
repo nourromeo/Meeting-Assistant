@@ -10,10 +10,13 @@ public class ApiKeyMiddleware
     public ApiKeyMiddleware(RequestDelegate next, IConfiguration configuration)
     {
         _next = next;
-        _expectedKey = configuration["ApiSecurity:ApiKey"]
+        _expectedKey =
+            configuration["ApiSecurity:ApiKey"] ??
+            configuration["ApiSettings:ApiKey"] ??
+            configuration["ApiKey"]
             ?? throw new InvalidOperationException(
-                "ApiSecurity:ApiKey is missing from configuration. " +
-                "Add it to appsettings.Development.json (and keep that file out of git).");
+                "API key is missing from configuration. Set one of: " +
+                "ApiSecurity:ApiKey, ApiSettings:ApiKey, or ApiKey in user secrets.");
     }
 
     public async Task InvokeAsync(HttpContext context)
