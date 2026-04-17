@@ -16,6 +16,7 @@ namespace XlentApi.Services
 
         private sealed record LiveSession(
             PushAudioInputStream PushStream,
+            AudioConfig AudioConfig,
             ConversationTranscriber Transcriber,
             CancellationTokenSource Cts);
 
@@ -175,7 +176,7 @@ namespace XlentApi.Services
             };
 
             var cts = new CancellationTokenSource();
-            _sessions[sessionId] = new LiveSession(pushStream, transcriber, cts);
+            _sessions[sessionId] = new LiveSession(pushStream, audioConfig, transcriber, cts);
 
             await transcriber.StartTranscribingAsync();
         }
@@ -192,9 +193,10 @@ namespace XlentApi.Services
         {
             if (!_sessions.TryRemove(sessionId, out var session)) return;
 
-            session.PushStream.Close();
             await session.Transcriber.StopTranscribingAsync();
             session.Transcriber.Dispose();
+            session.AudioConfig.Dispose();
+            session.PushStream.Dispose();
             session.Cts.Dispose();
         }
 
