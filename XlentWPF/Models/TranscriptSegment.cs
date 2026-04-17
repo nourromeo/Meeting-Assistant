@@ -7,6 +7,7 @@ namespace XlentWPF.Models
         [ObservableProperty] private string _speakerName = string.Empty;
         [ObservableProperty] private string _text = string.Empty;
         [ObservableProperty] private string _timestamp = string.Empty;
+        [ObservableProperty] private string? _detectedLanguage;
 
         // 1–8, used for colour coding
         public int SpeakerIndex { get; set; }

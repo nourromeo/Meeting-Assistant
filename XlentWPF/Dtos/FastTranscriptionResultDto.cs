@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Text.Json.Serialization;
 
 namespace XlentWPF.Dtos
 {
@@ -14,7 +12,14 @@ namespace XlentWPF.Dtos
     {
         public int? SpeakerId { get; set; } = null;
         public string Text { get; set; } = "";
-        public double StartOffsetSeconds { get; set; }
-        public double DurationSeconds { get; set; }
+
+        [JsonPropertyName("offsetMilliseconds")]
+        public double OffsetMilliseconds { get; set; }
+
+        [JsonPropertyName("durationMilliseconds")]
+        public double DurationMilliseconds { get; set; }
+
+        [JsonPropertyName("detectedLanguage")]
+        public string? DetectedLanguage { get; set; }
     }
 }

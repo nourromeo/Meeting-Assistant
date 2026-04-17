@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading.Channels;
 using XlentWPF.Dtos;
 using XlentWPF.Models;
 using XlentWPF.Services.Interfaces;
@@ -21,6 +22,8 @@ namespace XlentWPF.Services.Implementations
 
         private HubConnection? _hub;
         private CancellationTokenSource? _liveCts;
+        private Channel<byte[]>? _audioSendChannel;
+        private Task? _audioSenderTask;
         private bool _disposed;
 
         public event Action<TranscriptSegment>? SegmentRecognised;
@@ -28,7 +31,7 @@ namespace XlentWPF.Services.Implementations
 
         public TranscriptionService(IConfiguration configuration, IAudioService audio)
         {
-            _baseUrl = (configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5001/").TrimEnd('/');
+            _baseUrl = (configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5239/").TrimEnd('/');
             _apiKey = configuration["ApiSettings:ApiKey"] ?? string.Empty;
             _audio = audio;
 
@@ -78,7 +81,7 @@ namespace XlentWPF.Services.Implementations
             progress?.Report(100);
 
             return result.Segments
-                .Select(s => MapSegment(s.SpeakerId ?? 1, s.Text, s.StartOffsetSeconds))
+                .Select(s => MapSegment(s.SpeakerId ?? 1, s.Text, s.OffsetMilliseconds / 1000.0, s.DetectedLanguage))
                 .ToList();
         }
 
@@ -98,6 +101,7 @@ namespace XlentWPF.Services.Implementations
                 {
                     Text = s.Text,
                     SpeakerId = s.SpeakerName,
+                    DetectedLanguage = s.DetectedLanguage,
                     StartOffsetSeconds = 0,
                     DurationSeconds = 0,
                     IsFinal = true
@@ -135,7 +139,7 @@ namespace XlentWPF.Services.Implementations
 
             // Final recognized segment — add to transcript
             _hub.On<TranscriptSegmentDto>("SegmentReceived", dto =>
-                SegmentRecognised?.Invoke(MapSegment(dto.SpeakerId, dto.Text, dto.StartOffsetSeconds)));
+                SegmentRecognised?.Invoke(MapSegment(dto.SpeakerId, dto.Text, dto.StartOffsetSeconds, dto.DetectedLanguage)));
 
             // Intermediate/partial text — shown as live preview while speaking
             _hub.On<string>("PartialResultReceived", text =>
@@ -152,6 +156,14 @@ namespace XlentWPF.Services.Implementations
             await _hub.StartAsync(_liveCts.Token);
             await _hub.InvokeAsync("StartLive", language, _liveCts.Token);
 
+            // Do not drop audio chunks: dropping PCM frames causes recognition quality
+            // degradation and can surface as garbled text in UI.
+            _audioSendChannel = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
+            {
+                SingleReader = true,
+                SingleWriter = false
+            });
+            _audioSenderTask = RunAudioSenderAsync(_liveCts.Token);
             _audio.AudioDataAvailable += ForwardAudioChunk;
         }
 
@@ -167,6 +179,17 @@ namespace XlentWPF.Services.Implementations
                 _hub = null;
             }
 
+            if (_audioSendChannel is not null)
+            {
+                _audioSendChannel.Writer.TryComplete();
+                _audioSendChannel = null;
+            }
+            if (_audioSenderTask is not null)
+            {
+                try { await _audioSenderTask; } catch { /* best effort */ }
+                _audioSenderTask = null;
+            }
+
             _liveCts?.Cancel();
             _liveCts?.Dispose();
             _liveCts = null;
@@ -176,37 +199,49 @@ namespace XlentWPF.Services.Implementations
 
         private void ForwardAudioChunk(byte[] chunk)
         {
-            if (_hub?.State != HubConnectionState.Connected) return;
-            _ = _hub.InvokeAsync("SendAudioChunk", chunk)
-                    .ContinueWith(t =>
-                    {
-                        if (t.IsFaulted)
-                            System.Diagnostics.Debug.WriteLine(
-                                $"[Audio] Chunk send failed: {t.Exception?.GetBaseException().Message}");
-                    }, TaskContinuationOptions.OnlyOnFaulted);
+            if (_hub?.State != HubConnectionState.Connected || _audioSendChannel is null) return;
+            _audioSendChannel.Writer.TryWrite(chunk);
         }
 
-        private static TranscriptSegment MapSegment(int speakerId, string text, double offsetSeconds)
+        private async Task RunAudioSenderAsync(CancellationToken cancellationToken)
+        {
+            if (_audioSendChannel is null) return;
+            try
+            {
+                await foreach (var chunk in _audioSendChannel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    if (_hub?.State != HubConnectionState.Connected) continue;
+                    await _hub.InvokeAsync("SendAudioChunk", chunk, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Audio] Sender loop failed: {ex.Message}");
+            }
+        }
+
+        private static TranscriptSegment MapSegment(int speakerId, string text, double offsetSeconds, string? detectedLanguage)
         {
             var idx = Math.Clamp(speakerId, 1, 8);
-            return new TranscriptSegment
-            {
-                SpeakerName = $"Person {idx}",
-                SpeakerIndex = idx,
-                Timestamp = FormatTimestamp(offsetSeconds),
-                Text = text
-            };
+            return CreateSegment(idx, text, offsetSeconds, detectedLanguage);
         }
 
-        private static TranscriptSegment MapSegment(string speakerId, string text, double offsetSeconds)
+        private static TranscriptSegment MapSegment(string speakerId, string text, double offsetSeconds, string? detectedLanguage)
         {
             var idx = ParseSpeakerIndex(speakerId);
+            return CreateSegment(idx, text, offsetSeconds, detectedLanguage);
+        }
+
+        private static TranscriptSegment CreateSegment(int speakerIndex, string text, double offsetSeconds, string? detectedLanguage)
+        {
             return new TranscriptSegment
             {
-                SpeakerName = $"Person {idx}",
-                SpeakerIndex = idx,
+                SpeakerName = $"Person {speakerIndex}",
+                SpeakerIndex = speakerIndex,
                 Timestamp = FormatTimestamp(offsetSeconds),
-                Text = text
+                Text = text,
+                DetectedLanguage = detectedLanguage
             };
         }
 

@@ -27,9 +27,9 @@ namespace XlentWPF.Services.Implementations
 
             return new SummaryResult
             {
-                Overview = dto!.Summary,
-                KeyPoints = dto.KeyPoints,
-                ActionItems = dto.ActionItems
+                Overview = dto?.Summary ?? string.Empty,
+                KeyPoints = dto?.KeyPoints ?? [],
+                ActionItems = dto?.ActionItems ?? []
             };
         }
     }

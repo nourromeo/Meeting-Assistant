@@ -70,6 +70,7 @@ namespace XlentApi.Services
                         {
                             SpeakerId = s.SpeakerId?.ToString() ?? "unknown",
                             Text = s.Text,
+                            DetectedLanguage = null,
                             StartOffsetSeconds = s.OffsetMilliseconds / 1000.0,
                             DurationSeconds = s.DurationMilliseconds / 1000.0,
                             IsFinal = true
@@ -152,10 +153,12 @@ namespace XlentApi.Services
                 if (e.Result.Reason == ResultReason.RecognizedSpeech &&
                     !string.IsNullOrWhiteSpace(e.Result.Text))
                 {
+                    var detectedLanguage = ParseLanguageTag(e.Result.Properties.GetProperty(PropertyId.SpeechServiceConnection_AutoDetectSourceLanguageResult));
                     var segment = new TranscriptSegment
                     {
                         Text = e.Result.Text,
                         SpeakerId = e.Result.SpeakerId,
+                        DetectedLanguage = detectedLanguage,
                         StartOffsetSeconds = e.Result.OffsetInTicks / 10_000_000.0,
                         DurationSeconds = e.Result.Duration.TotalSeconds,
                         IsFinal = true
@@ -252,6 +255,19 @@ namespace XlentApi.Services
                     _jobs.TryRemove(kv.Key, out _);
                 }
             }
+        }
+
+        private static string? ParseLanguageTag(string? rawValue)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue)) return null;
+
+            var token = rawValue.Trim();
+            // Expect "sv-SE"/"en-US" primarily; be permissive if SDK returns extra formatting.
+            if (token.Length >= 2 && token.Contains('-'))
+                return token;
+
+            var parts = token.Split([' ', ';', ','], StringSplitOptions.RemoveEmptyEntries);
+            return parts.FirstOrDefault(p => p.Contains('-')) ?? token;
         }
     }
 }

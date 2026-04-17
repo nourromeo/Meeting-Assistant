@@ -7,6 +7,7 @@ using Microsoft.CognitiveServices.Speech;
 using Microsoft.Extensions.Options;
 using XlentApi.Hubs;
 using XlentApi.Interfaces;
+using XlentApi.API.Middleware;
 using XlentApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -79,6 +80,7 @@ builder.Services.AddSingleton<IPiiService, PiiService>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();
+app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<TranscriptionHub>("/hubs/transcription");

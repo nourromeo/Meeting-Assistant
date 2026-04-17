@@ -30,12 +30,13 @@ namespace XlentApi.Services
                 You are a meeting assistant.
                 Create:
                 1) A concise summary (3-8 sentences)
-                2) Action items as a bullet list (imperative form, owner if possible)
+                2) Key points as short bullets
+                3) Action items as a bullet list (imperative form, owner if possible)
                 
                 Rules:
                 - Output MUST be valid JSON only (no markdown, no extra text).
                 - JSON schema:
-                  { "summary": "string", "actionItems": ["string", "..."] }
+                  { "summary": "string", "keyPoints": ["string", "..."], "actionItems": ["string", "..."] }
                 - Keep the output in the language specified by the user (or match the transcript if it is obvious).
                 """;
 
@@ -61,6 +62,7 @@ namespace XlentApi.Services
                 return new MeetingSummaryResponse
                 {
                     Summary = content.Trim(),
+                    KeyPoints = new List<string>(),
                     ActionItems = new List<string>()
                 };
             }
@@ -78,6 +80,18 @@ namespace XlentApi.Services
                 var summary = root.GetProperty("summary").GetString() ?? string.Empty;
 
                 var items = new List<string>();
+                var keyPoints = new List<string>();
+
+                if (root.TryGetProperty("keyPoints", out var keyPointsElement) && keyPointsElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var item in keyPointsElement.EnumerateArray())
+                    {
+                        var s = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(s))
+                            keyPoints.Add(s.Trim());
+                    }
+                }
+
                 if (root.TryGetProperty("actionItems", out var actionItems) && actionItems.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var item in actionItems.EnumerateArray())
@@ -91,6 +105,7 @@ namespace XlentApi.Services
                 return new MeetingSummaryResponse
                 {
                     Summary = summary.Trim(),
+                    KeyPoints = keyPoints,
                     ActionItems = items
                 };
             }

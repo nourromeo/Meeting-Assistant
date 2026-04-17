@@ -18,31 +18,38 @@ public class ApiKeyMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        // Allow the SignalR WebSocket upgrade to carry the key as a query param
-        // so clients that cannot set headers on the upgrade handshake can still connect.
+        string? providedKey = null;
+
         if (context.Request.Headers.TryGetValue(ApiKeyHeader, out var headerKey))
         {
-            if (!headerKey.Equals(_expectedKey))
+            providedKey = headerKey.ToString();
+        }
+        else if (context.Request.Headers.TryGetValue("Authorization", out var authHeader))
+        {
+            var authValue = authHeader.ToString();
+            const string bearerPrefix = "Bearer ";
+            if (authValue.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Invalid API key.");
-                return;
+                providedKey = authValue[bearerPrefix.Length..].Trim();
             }
         }
         else if (context.Request.Query.TryGetValue("apiKey", out var queryKey))
         {
-            // SignalR WebSocket upgrade path: ?apiKey=...
-            if (!queryKey.Equals(_expectedKey))
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync("Invalid API key.");
-                return;
-            }
+            // SignalR WebSocket upgrade fallback: ?apiKey=...
+            providedKey = queryKey.ToString();
         }
-        else
+
+        if (string.IsNullOrWhiteSpace(providedKey))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync("Missing API key. Provide the X-Api-Key header.");
+            await context.Response.WriteAsync("Missing API key. Provide X-Api-Key or Bearer token.");
+            return;
+        }
+
+        if (!string.Equals(providedKey, _expectedKey, StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync("Invalid API key.");
             return;
         }
 
