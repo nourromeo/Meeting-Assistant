@@ -80,7 +80,27 @@ builder.Services.AddSingleton<IPiiService, PiiService>();
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-app.UseMiddleware<ApiKeyMiddleware>();
+var appApiKey =
+    config["ApiSecurity:ApiKey"] ??
+    config["ApiSettings:ApiKey"] ??
+    config["ApiKey"];
+
+if (!string.IsNullOrWhiteSpace(appApiKey))
+{
+    app.UseMiddleware<ApiKeyMiddleware>();
+}
+else if (app.Environment.IsDevelopment())
+{
+    app.Logger.LogWarning(
+        "No app API key configured (ApiSecurity:ApiKey / ApiSettings:ApiKey / ApiKey). " +
+        "API key middleware is disabled in Development.");
+}
+else
+{
+    throw new InvalidOperationException(
+        "Missing API key configuration for non-development environment. " +
+        "Set ApiSecurity:ApiKey, ApiSettings:ApiKey, or ApiKey.");
+}
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<TranscriptionHub>("/hubs/transcription");
